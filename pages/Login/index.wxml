@@ -1,0 +1,80 @@
+<!-- pages/Login/index.wxml -->
+<view class="login-container">
+  <!-- 背景装饰 -->
+  <view class="background-decoration">
+    <view class="circle circle-1"></view>
+    <view class="circle circle-2"></view>
+    <view class="circle circle-3"></view>
+  </view>
+
+  <!-- 主内容 -->
+  <view class="login-content">
+    <!-- Logo和标题 -->
+    <view class="logo-section">
+      <text class="logo-icon"></text>
+      <text class="app-name">GirlsHelp</text>
+      <text class="app-slogan">姐妹互助，温暖同行</text>
+    </view>
+
+    <!-- 登录状态 -->
+    <view class="status-section">
+      <view wx:if="{{loading}}" class="loading-wrapper">
+        <view class="loading-spinner"></view>
+        <text class="loading-text">{{loadingText}}</text>
+      </view>
+
+      <view wx:elif="{{error}}" class="error-wrapper">
+        <text class="error-icon"></text>
+        <text class="error-text">{{error}}</text>
+      </view>
+
+      <view wx:else class="success-wrapper">
+        <text class="success-icon">✓</text>
+        <text class="success-text">登录成功</text>
+      </view>
+    </view>
+
+    <!-- 权限说明 -->
+    <view wx:if="{{!loading && !error}}" class="permission-info">
+      <view class="permission-item">
+        <text class="permission-icon"></text>
+        <text class="permission-text">位置权限 - 用于显示附近的姐妹</text>
+      </view>
+      <view class="permission-item">
+        <text class="permission-icon"></text>
+        <text class="permission-text">隐私保护 - 位置信息已模糊处理</text>
+      </view>
+    </view>
+
+    <!-- 登录按钮 -->
+    <view class="action-section">
+      <button
+        wx:if="{{!isLoggedIn}}"
+        class="login-btn"
+        bindtap="handleLogin"
+        disabled="{{loading}}"
+      >
+        <text class="btn-icon"></text>
+        <text class="btn-text">微信登录</text>
+      </button>
+
+      <button
+        wx:else
+        class="enter-btn"
+        bindtap="enterApp"
+      >
+        <text class="btn-text">进入应用</text>
+      </button>
+    </view>
+
+    <!-- 用户协议 -->
+    <view class="agreement-section">
+      <text class="agreement-text">
+        登录即表示同意
+        <text class="link" bindtap="showAgreement">《用户协议》</text>
+        和
+        <text class="link" bindtap="showPrivacy">《隐私政策》</text>
+      </text>
+    </view>
+  </view>
+</view>

@@ -1,4 +1,6 @@
 // pages/home/index.js
+const cloud = require('../../utils/cloud.js');
+
 Page({
   data: {
     helpStatus: 'idle', // 'idle' | 'requesting' | 'active'
@@ -17,11 +19,20 @@ Page({
     treeHoleInput: '',
     resultImage: '',
     resultRole: '',
-    resultText: ''
+    resultText: '',
+    currentRequestId: null,
+    pollTimer: null
   },
 
   onLoad: function (options) {
     console.log('Home page loaded');
+  },
+
+  onUnload: function () {
+    // 清除轮询定时器
+    if (this.data.pollTimer) {
+      clearTimeout(this.data.pollTimer);
+    }
   },
 
   onShow: function () {
@@ -30,6 +41,11 @@ Page({
     this.setData({
       helpStatus: app.globalData.helpStatus
     });
+
+    // 如果有进行中的请求，恢复轮询
+    if (this.data.currentRequestId && this.data.helpStatus === 'requesting') {
+      this.pollMatchStatus();
+    }
   },
 
   // 处理求助按钮点击
@@ -45,13 +61,8 @@ Page({
         duration: 2000
       });
     } else if (helpStatus === 'active') {
-      wx.showToast({
-        title: '互助完成！感谢使用。',
-        icon: 'success',
-        duration: 3000
-      });
-      this.setData({ helpStatus: 'idle' });
-      getApp().globalData.helpStatus = 'idle';
+      // 完成互助
+      this.completeHelp();
     }
   },
 
@@ -62,24 +73,171 @@ Page({
 
   // 提交求助请求
   submitRequest: function (type, note) {
+    const that = this;
+    const app = getApp();
+
     this.setData({
       showRequestModal: false,
       helpStatus: 'requesting'
     });
-    getApp().globalData.helpStatus = 'requesting';
+    app.globalData.helpStatus = 'requesting';
 
-    // 模拟寻找帮助者
-    setTimeout(() => {
-      this.setData({ helpStatus: 'active' });
-      getApp().globalData.helpStatus = 'active';
+    // 获取当前位置
+    wx.getLocation({
+      type: 'gcj02',
+      success: (locRes) => {
+        const location = {
+          latitude: locRes.latitude,
+          longitude: locRes.longitude,
+          accuracy: locRes.accuracy
+        };
+
+        // 调用云函数创建求助请求
+        cloud.createHelpRequest(type, note, location)
+          .then(res => {
+            console.log('Help request created:', res);
+
+            // 保存请求ID
+            that.setData({
+              currentRequestId: res.requestId
+            });
+
+            // 更新位置到服务器
+            cloud.updateUserLocation(location).catch(err => {
+              console.error('Update location failed:', err);
+            });
+
+            // 开始轮询匹配状态
+            setTimeout(() => {
+              that.pollMatchStatus();
+            }, 5000);
+          })
+          .catch(err => {
+            console.error('Create help request failed:', err);
+
+            wx.showToast({
+              title: err.error || '请求失败，请重试',
+              icon: 'none'
+            });
+
+            that.setData({ helpStatus: 'idle' });
+            app.globalData.helpStatus = 'idle';
+          });
+      },
+      fail: () => {
+        wx.showToast({
+          title: '获取位置失败，请检查权限设置',
+          icon: 'none'
+        });
+
+        that.setData({ helpStatus: 'idle' });
+        app.globalData.helpStatus = 'idle';
+      }
+    });
+  },
+
+  // 轮询匹配状态
+  pollMatchStatus: function () {
+    const that = this;
+    const app = getApp();
+
+    // 清除之前的定时器
+    if (that.data.pollTimer) {
+      clearTimeout(that.data.pollTimer);
+    }
+
+    if (!that.data.currentRequestId) {
+      return;
+    }
+
+    // 调用云函数获取状态
+    cloud.getHelpRequestStatus(that.data.currentRequestId)
+      .then(res => {
+        console.log('Help request status:', res);
+
+        if (res.status === 'matched' || res.status === 'active') {
+          // 匹配成功
+          that.setData({
+            helpStatus: 'active'
+          });
+          app.globalData.helpStatus = 'active';
+
+          wx.showToast({
+            title: '附近有姐妹响应了你的请求！',
+            icon: 'success',
+            duration: 5000,
+            mask: true
+          });
+        } else if (res.status === 'pending') {
+          // 继续轮询
+          const timer = setTimeout(() => {
+            that.pollMatchStatus();
+          }, 5000);
+          that.setData({ pollTimer: timer });
+        } else if (res.status === 'cancelled') {
+          // 已取消
+          that.setData({
+            helpStatus: 'idle',
+            currentRequestId: null
+          });
+          app.globalData.helpStatus = 'idle';
+        }
+      })
+      .catch(err => {
+        console.error('Get status failed:', err);
+        // 继续轮询
+        const timer = setTimeout(() => {
+          that.pollMatchStatus();
+        }, 5000);
+        that.setData({ pollTimer: timer });
+      });
+  },
+
+  // 完成互助
+  completeHelp: function () {
+    const that = this;
+    const app = getApp();
+
+    if (!that.data.currentRequestId) {
+      // 没有请求ID，直接重置状态
+      that.setData({
+        helpStatus: 'idle'
+      });
+      app.globalData.helpStatus = 'idle';
 
       wx.showToast({
-        title: '附近有姐妹响应了你的请求！',
+        title: '互助完成！感谢使用。',
         icon: 'success',
-        duration: 5000,
-        mask: true
+        duration: 3000
       });
-    }, 5000);
+      return;
+    }
+
+    // 调用云函数完成互助
+    cloud.completeHelp(that.data.currentRequestId)
+      .then(res => {
+        console.log('Help completed:', res);
+
+        that.setData({
+          helpStatus: 'idle',
+          currentRequestId: null
+        });
+        app.globalData.helpStatus = 'idle';
+
+        wx.showToast({
+          title: res.message || '互助完成！感谢使用。',
+          icon: 'success',
+          duration: 3000
+        });
+      })
+      .catch(err => {
+        console.error('Complete help failed:', err);
+
+        wx.showToast({
+          title: err.error || '操作失败',
+          icon: 'none'
+        });
+      });
   },
 
   // 关闭请求模态框
@@ -115,6 +273,11 @@ Page({
     const { selectedType, note } = this.data;
     if (selectedType) {
       this.submitRequest(selectedType, note);
+    } else {
+      wx.showToast({
+        title: '请选择帮助类型',
+        icon: 'none'
+      });
     }
   },
 
@@ -125,53 +288,78 @@ Page({
 
   // 发送树洞消息
   sendTreeHole: function () {
+    const that = this;
     const { treeHoleInput } = this.data;
-    if (!treeHoleInput.trim()) return;
+
+    if (!treeHoleInput.trim()) {
+      wx.showToast({
+        title: '请输入你想说的话',
+        icon: 'none'
+      });
+      return;
+    }
 
     this.setData({ treeHoleStep: 'processing' });
 
-    // 模拟处理延迟
-    setTimeout(() => {
-      // 简单的关键词匹配
-      let result = {
-        image: 'bird',
-        role: '一只路过的小鸟',
-        text: '"每一次跌倒，都是为了学会飞翔。" \n—— 即使翅膀受损，天空依然为你敞开。'
-      };
+    // 调用云函数进行情绪支持
+    cloud.emotionSupport(treeHoleInput)
+      .then(res => {
+        console.log('Emotion support result:', res);
 
-      if (treeHoleInput.includes('累') || treeHoleInput.includes('难过')) {
-        result = {
-          image: 'flower',
-          role: '墙角的小白花',
-          text: '"在这喧嚣的世界里，允许自己安静地枯萎一会儿，也是一种生命力。"'
-        };
-      } else if (treeHoleInput.includes('生气') || treeHoleInput.includes('烦')) {
-        result = {
-          image: 'rain',
-          role: '夏日的雷阵雨',
-          text: '"宣泄是自然的韵律，大雨过后，空气会变得格外清新。"'
-        };
-      }
+        that.setData({
+          treeHoleStep: 'result',
+          resultImage: res.result.image,
+          resultRole: res.result.role,
+          resultText: res.result.text
+        });
+      })
+      .catch(err => {
+        console.error('Emotion support failed:', err);
 
-      this.setData({
-        treeHoleStep: 'result',
-        resultImage: result.image,
-        resultRole: result.role,
-        resultText: result.text
+        // 即使失败也显示默认回应
+        that.setData({
+          treeHoleStep: 'result',
+          resultImage: 'bird',
+          resultRole: '一只路过的小鸟',
+          resultText: '"每一次倾诉，都是一次释放。" \n—— 谢谢你愿意分享。'
+        });
       });
-    }, 2000);
   },
 
   // 长按取消请求
   onLongPress: function () {
+    const that = this;
+    const app = getApp();
+
     if (this.data.helpStatus === 'requesting') {
       wx.showModal({
         title: '取消请求',
         content: '确定要取消当前的求助请求吗？',
         success: (res) => {
           if (res.confirm) {
-            this.setData({ helpStatus: 'idle' });
-            getApp().globalData.helpStatus = 'idle';
+            // 清除定时器
+            if (that.data.pollTimer) {
+              clearTimeout(that.data.pollTimer);
+              that.setData({ pollTimer: null });
+            }
+
+            // 如果有请求ID，调用云函数取消
+            if (that.data.currentRequestId) {
+              cloud.cancelHelpRequest(that.data.currentRequestId)
+                .then(() => {
+                  console.log('Help request cancelled');
+                })
+                .catch(err => {
+                  console.error('Cancel help request failed:', err);
+                });
+            }
+
+            that.setData({
+              helpStatus: 'idle',
+              currentRequestId: null
+            });
+            app.globalData.helpStatus = 'idle';
+
             wx.showToast({
               title: '已取消请求',
               icon: 'success'

@@ -1,0 +1,266 @@
+/* pages/Login/index.wxss */
+@import "../../styles/theme.wxss";
+
+.login-container {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #FFF5F5 0%, #FCF9EA 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 32px;
+}
+
+/* 背景装饰 */
+.background-decoration {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.circle {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.3;
+}
+
+.circle-1 {
+  width: 200px;
+  height: 200px;
+  background: var(--primary-pink);
+  top: -50px;
+  right: -50px;
+  filter: blur(40px);
+}
+
+.circle-2 {
+  width: 150px;
+  height: 150px;
+  background: var(--primary-green);
+  bottom: 100px;
+  left: -30px;
+  filter: blur(30px);
+}
+
+.circle-3 {
+  width: 100px;
+  height: 100px;
+  background: var(--primary-pink);
+  bottom: -20px;
+  right: 50px;
+  filter: blur(25px);
+}
+
+/* 主内容 */
+.login-content {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Logo区域 */
+.logo-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 60px;
+}
+
+.logo-icon {
+  font-size: 80px;
+  margin-bottom: 16px;
+}
+
+.app-name {
+  font-size: 32px;
+  font-weight: bold;
+  color: var(--text-dark);
+  margin-bottom: 8px;
+  margin-right:80px;
+}
+
+.app-slogan {
+  font-size: 14px;
+  color: var(--text-gray);
+  margin-right:80px;
+}
+
+/* 状态区域 */
+.status-section {
+  width: 100%;
+  margin-bottom: 40px;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right:80px;
+}
+
+.loading-wrapper,
+.error-wrapper,
+.success-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+/* 加载动画 */
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 164, 164, 0.2);
+  border-top-color: var(--primary-pink);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 14px;
+  color: var(--text-gray);
+}
+
+/* 错误状态 */
+.error-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.error-text {
+  font-size: 14px;
+  color: var(--error-red);
+  text-align: center;
+}
+
+/* 成功状态 */
+.success-icon {
+  font-size: 48px;
+  color: var(--primary-green);
+  margin-bottom: 12px;
+}
+
+.success-text {
+  font-size: 18px;
+  color: var(--primary-green);
+  font-weight: 600;
+}
+
+/* 权限说明 */
+.permission-info {
+  width: 100%;
+  background-color: rgba(255, 255, 255, 0.6);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 32px;
+  backdrop-filter: blur(10px);
+}
+
+.permission-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.permission-item:last-child {
+  margin-bottom: 0;
+}
+
+.permission-icon {
+  font-size: 18px;
+  margin-right: 10px;
+}
+
+.permission-text {
+  font-size: 13px;
+  color: var(--text-gray);
+  line-height: 1.5;
+}
+
+/* 操作区域 */
+.action-section {
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.login-btn,
+.enter-btn {
+  width: 100%;
+  height: 52px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.login-btn {
+  background-color: var(--primary-pink);
+  color: rgb(99, 2, 2);
+  box-shadow: 0 4px 16px rgba(255, 164, 164, 0.3);
+  max-width:300px;
+  margin-right:80px;
+}
+
+.login-btn:active {
+  background-color: var(--primary-pink-dark);
+  transform: scale(0.98);
+}
+
+.login-btn[disabled] {
+  background-color: var(--text-lighter);
+  box-shadow: none;
+  opacity: 0.6;
+  max-width:100px;
+}
+
+.enter-btn {
+  background-color: var(--primary-green);
+  color: white;
+  box-shadow: 0 4px 16px rgba(186, 223, 219, 0.5);
+  max-width:100px;
+}
+
+.enter-btn:active {
+  background-color: var(--primary-green-dark);
+  transform: scale(0.98);
+}
+
+.btn-icon {
+  font-size: 20px;
+  margin-right: 8px;
+}
+
+.btn-text {
+  font-size: 16px;
+}
+
+/* 协议区域 */
+.agreement-section {
+  width: 100%;
+  text-align: center;
+  margin-right:80px;
+}
+
+.agreement-text {
+  font-size: 12px;
+  color: var(--text-lighter);
+  line-height: 1.6;
+}
+
+.link {
+  color: var(--primary-green);
+  text-decoration: underline;
+}

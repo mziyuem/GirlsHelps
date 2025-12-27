@@ -1,44 +1,84 @@
 <!-- pages/map/index.wxml -->
 <view class="map-container">
-  <!-- 背景圆环 -->
-  <view class="background-rings">
-    <view class="ring ring-1"></view>
-    <view class="ring ring-2"></view>
-    <view class="ring ring-3"></view>
+  <!-- 原生地图组件 -->
+  <map
+    id="tencentMap"
+    class="tencent-map"
+    longitude="{{longitude}}"
+    latitude="{{latitude}}"
+    scale="{{scale}}"
+    markers="{{markers}}"
+    show-location="{{true}}"
+    bindmarkertap="onMarkerTap"
+    bindregionchange="onRegionChange"
+    bindtap="onMapTap"
+    subkey="{{mapKey}}"
+    enable-3D="{{false}}"
+    show-compass="{{true}}"
+    enable-overlooking="{{false}}"
+    enable-zoom="{{true}}"
+    enable-scroll="{{true}}"
+    enable-rotate="{{false}}"
+  >
+    <!-- 自定义标注点 -->
+    <cover-view slot="callout">
+      <cover-view
+        wx:for="{{markers}}"
+        wx:key="id"
+        class="custom-callout {{item.type}}"
+        marker-id="{{item.id}}"
+      >
+        <cover-view class="callout-content">
+          <cover-view class="callout-icon">{{item.type === 'helper' ? '🤝' : '🆘'}}</cover-view>
+        </cover-view>
+      </cover-view>
+    </cover-view>
+  </map>
+
+  <!-- 顶部状态提示 -->
+  <view class="status-bar">
+    <view class="status-info">
+      <text class="status-icon">📍</text>
+      <text class="status-text">{{statusText}}</text>
+    </view>
   </view>
 
-  <!-- 用户中心点 -->
-  <view class="user-center">
-    <view class="user-dot">
-      <text class="location-icon">📍</text>
+  <!-- 右侧控制按钮 -->
+  <view class="control-buttons">
+    <!-- 定位按钮 -->
+    <view class="control-btn" bindtap="moveToLocation">
+      <text class="btn-icon">🎯</text>
     </view>
-    <view class="user-label">
-      <text>你在这里 (模糊位置)</text>
+    <!-- 放大按钮 -->
+    <view class="control-btn" bindtap="zoomIn">
+      <text class="btn-icon">➕</text>
+    </view>
+    <!-- 缩小按钮 -->
+    <view class="control-btn" bindtap="zoomOut">
+      <text class="btn-icon">➖</text>
     </view>
   </view>
 
-  <!-- 地图点 -->
-  <view class="map-points">
-    <view
-      wx:for="{{points}}"
-      wx:key="id"
-      class="map-point {{item.type}}"
-      style="transform: translate({{item.x}}px, {{item.y}}px)"
-      bindtap="selectPoint"
-      data-id="{{item.id}}"
-    >
-      <view class="point-dot"></view>
+  <!-- 图例 -->
+  <view class="legend">
+    <view class="legend-item">
+      <view class="legend-dot helper"></view>
+      <text class="legend-text">帮助者</text>
+    </view>
+    <view class="legend-item">
+      <view class="legend-dot seeker"></view>
+      <text class="legend-text">求助者</text>
     </view>
   </view>
 
   <!-- 底部信息面板 -->
-  <view wx:if="{{selectedPoint}}" class="bottom-sheet">
+  <view wx:if="{{selectedMarker}}" class="bottom-sheet {{showSheet ? 'show' : ''}}">
     <view class="sheet-header">
       <view class="sheet-info">
-        <text class="sheet-title">
-          {{selectedPoint.type === 'helper' ? '附近的帮助者' : '附近的求助者'}}
+        <text class="sheet-type">
+          {{selectedMarker.type === 'helper' ? '🤝 附近的帮助者' : '🆘 附近的求助者'}}
         </text>
-        <text class="sheet-distance">距离约 {{selectedPoint.distance}} 米</text>
+        <text class="sheet-distance">距离约 {{selectedMarker.distance}} 米</text>
       </view>
       <view class="close-btn" bindtap="closeBottomSheet">
         <text>✕</text>
@@ -47,12 +87,17 @@
 
     <view class="sheet-tags">
       <text class="tag">
-        {{selectedPoint.type === 'helper' ? '可提供: 卫生巾' : '急需: 纸巾'}}
+        {{selectedMarker.type === 'helper' ? selectedMarker.provide : selectedMarker.need}}
       </text>
     </view>
 
-    <button class="contact-btn" bindtap="contactPerson">
-      {{selectedPoint.type === 'helper' ? '联系她' : '我可以提供帮助'}}
-    </button>
+    <view class="sheet-actions">
+      <button class="action-btn primary" bindtap="contactPerson">
+        {{selectedMarker.type === 'helper' ? '联系她' : '我可以提供帮助'}}
+      </button>
+      <button class="action-btn secondary" bindtap="navigateTo">
+        <text class="btn-text">导航</text>
+      </button>
+    </view>
   </view>
 </view>
