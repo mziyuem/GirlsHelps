@@ -48,14 +48,14 @@
 
     <!-- 登录按钮 -->
     <view class="action-section">
-      <button
-        wx:if="{{!isLoggedIn}}"
-        class="login-btn"
-        bindtap="handleLogin"
+      <button 
+        wx:if="{{!isLoggedIn}}" 
+        class="wechat-login-btn" 
+        bindtap="onLoginTap"
         disabled="{{loading}}"
       >
-        <text class="btn-icon"></text>
-        <text class="btn-text">微信登录</text>
+        <text class="wechat-icon">🐧</text>
+        <text class="login-btn-text">微信快捷登录</text>
       </button>
 
       <button

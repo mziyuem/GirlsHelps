@@ -20,21 +20,15 @@
     "list": [
       {
         "pagePath": "pages/home/index",
-        "text": "求助",
-        "iconPath": "",
-        "selectedIconPath": ""
+        "text": "求助"
       },
       {
         "pagePath": "pages/map/index",
-        "text": "附近",
-        "iconPath": "",
-        "selectedIconPath": ""
+        "text": "附近"
       },
       {
         "pagePath": "pages/profile/index",
-        "text": "我的",
-        "iconPath": "",
-        "selectedIconPath": ""
+        "text": "我的"
       }
     ]
   },

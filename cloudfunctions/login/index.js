@@ -4,7 +4,7 @@
 const cloud = require('wx-server-sdk');
 
 cloud.init({
-  env: cloud.DYNAMIC_CURRENT_ENV
+  env: 'cloud1-8ggz6j81c4d33fbe'
 });
 
 const db = cloud.database();
@@ -48,9 +48,10 @@ exports.main = async (event, context) => {
   });
 
   try {
-    // 检查用户是否存在
+    // ========== 修改1：查询字段从 _openid 改为 openid（匹配索引） ==========
+    // 检查用户是否存在（用openid查询，而非_openid）
     const userResult = await db.collection('users').where({
-      _openid: wxContext.OPENID
+      openid: wxContext.OPENID // 关键：和数据库索引字段一致
     }).get();
 
     let user;
@@ -59,10 +60,11 @@ exports.main = async (event, context) => {
     if (userResult.data.length === 0) {
       // 新用户，创建记录
       isNewUser = true;
-      const now = new Date();
+      const now = db.serverDate(); // 修改2：改用云端时间，避免本地时间偏差
 
       user = {
-        _openid: wxContext.OPENID,
+        // ========== 修改3：字段名从 _openid 改为 openid（核心！） ==========
+        openid: wxContext.OPENID, // 匹配数据库唯一索引字段，杜绝null
         userId: generateUserId(),
         nickName: userInfo.nickName || '姐妹',
         avatarUrl: userInfo.avatarUrl || '',
@@ -80,24 +82,28 @@ exports.main = async (event, context) => {
         createTime: now
       };
 
-      const addResult = await db.collection('users').add({
-        data: user
+      // ========== 修改4：用 doc(openid).set 替代 add（杜绝重复+保证openid非空） ==========
+      // 用openid作为文档ID，强制唯一，避免add生成随机ID导致的问题
+      const addResult = await db.collection('users').doc(wxContext.OPENID).set({
+        data: user,
+        merge: false // 新用户直接创建，不合并（merge仅老用户需要）
       });
 
-      user._id = addResult._id;
+      user._id = wxContext.OPENID; // 文档ID就是openid，无需从addResult取
       console.log('[Login] New user created:', user.userId);
 
     } else {
       // 老用户，更新最后活跃时间
       user = userResult.data[0];
-      const now = new Date();
+      const now = db.serverDate(); // 修改2：改用云端时间
 
+      // ========== 修改5：更新时用文档ID（user._id），保证精准 ==========
       await db.collection('users').doc(user._id).update({
         data: {
           lastActiveTime: now,
-          // 如果提供了新的用户信息，也更新
-          ...(userInfo.nickName && { nickName: userInfo.nickName }),
-          ...(userInfo.avatarUrl && { avatarUrl: userInfo.avatarUrl })
+          // 仅更新有变化的用户信息，避免覆盖
+          ...(userInfo?.nickName && userInfo.nickName !== user.nickName ? { nickName: userInfo.nickName } : {}),
+          ...(userInfo?.avatarUrl && userInfo.avatarUrl !== user.avatarUrl ? { avatarUrl: userInfo.avatarUrl } : {})
         }
       });
 
