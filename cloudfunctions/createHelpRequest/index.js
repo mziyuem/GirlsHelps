@@ -64,7 +64,7 @@ exports.main = async (event, context) => {
       _openid: wxContext.OPENID,
       userId: user.userId,
       requestId: requestId,
-      type: type,
+      type: type || 'other',
       note: note || '',
       status: 'pending',
       location: {

@@ -1,11 +1,22 @@
 /* pages/map/index.wxss */
 @import "../../styles/theme.wxss";
 
+/* app.wxss */
+page {
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* pages/map/index.wxss */
 .map-container {
   position: relative;
-  width: 100%;
-  height: 100%;
+  width: 100vw; /* 替换 100% 为 100vw，强制占满屏幕宽度 */
+  height: 100vh; /* 替换 100% 为 100vh，强制占满屏幕高度 */
   background-color: var(--background-cream);
+  overflow: hidden; /* 防止内容溢出 */
 }
 
 /* 原生地图组件 */

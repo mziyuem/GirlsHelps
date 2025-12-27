@@ -69,13 +69,14 @@ exports.main = async (event, context) => {
         nickName: userInfo.nickName || '姐妹',
         avatarUrl: userInfo.avatarUrl || '',
         isAnonymous: userInfo.isAnonymous || false,
+        city: userInfo.city || '',
         resources: [],
         showOnMap: true,
         stats: {
           helpGiven: 0,
           helpReceived: 0
         },
-        currentLocation: null,
+        currentLocation: {},
         privacyOffset: 200,
         joinTime: now,
         lastActiveTime: now,

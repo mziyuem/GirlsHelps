@@ -12,7 +12,6 @@
     bindmarkertap="onMarkerTap"
     bindregionchange="onRegionChange"
     bindtap="onMapTap"
-    subkey="{{mapKey}}"
     enable-3D="{{false}}"
     show-compass="{{true}}"
     enable-overlooking="{{false}}"

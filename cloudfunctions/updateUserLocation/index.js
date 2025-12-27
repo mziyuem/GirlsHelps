@@ -19,35 +19,37 @@ exports.main = async (event, context) => {
   });
 
   try {
+    // ========== 修改1：增加参数校验（避免无效数据导致的写入失败） ==========
+    if (!location || isNaN(Number(location.latitude)) || isNaN(Number(location.longitude))) {
+      console.error('[UpdateUserLocation] Invalid location params:', location);
+      return {
+        success: false,
+        error: '位置参数无效（经纬度必须为数字）'
+      };
+    }
+
     // 更新用户位置
     const locationData = {
       currentLocation: {
-        latitude: Number(location.latitude), // 强制转数值
-        longitude: Number(location.longitude), // 强制转数值
-        accuracy: Number(location.accuracy) || 0, // 强制转数值
-        updateTime: db.serverDate() // 替换为云端时间，避免本地时间偏差
+        latitude: Number(location.latitude),
+        longitude: Number(location.longitude),
+        accuracy: Number(location.accuracy) || 0,
+        updateTime: db.serverDate()
       },
       lastActiveTime: db.serverDate()
     };
 
-    const result = await db.collection('users').doc(wxContext.OPENID).update({
-      data: locationData // 移除 merge 参数，update 天然支持增量更新
+    // ========== 修改2：兜底创建文档时也加 merge: true（避免覆盖旧字段） ==========
+    const result = await db.collection('users').doc(wxContext.OPENID).set({
+      data: locationData,
+      merge: true
     });
 
     console.log('[UpdateUserLocation] Updated, stats:', result.stats);
     
-    if (result.stats.updated === 0) {
-      await db.collection('users').doc(wxContext.OPENID).set({
-        data: {
-          // 基础字段（避免空文档）
-          openid: wxContext.OPENID,
-          createTime: db.serverDate(),
-          // 位置字段
-          ...locationData
-        }
-      });
-      console.log('[UpdateUserLocation] Created new user document');
-    }
+    // ========== 修改3：移除多余的 "更新为0则创建" 逻辑（set + merge: true 已兼容） ==========
+    // 原逻辑多余：set({merge: true}) 本身会自动创建不存在的文档，无需额外判断
+    // 若保留原逻辑，会导致 "创建文档" 日志重复，且可能触发重复写入
 
     return {
       success: true
