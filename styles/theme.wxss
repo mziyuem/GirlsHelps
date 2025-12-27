@@ -1,0 +1,37 @@
+/* 主题色彩变量 */
+:root {
+  --primary-pink: #FFA4A4;
+  --primary-pink-light: #FFBDBD;
+  --primary-green: #BADFDB;
+  --primary-green-light: #D1E8E6;
+  --primary-green-dark: #7dbdb3;
+
+  --background-cream: #FCF9EA;
+  --background-white: #FFFFFF;
+
+  --text-dark: #2d3748;
+  --text-gray: #4a5568;
+  --text-light: #718096;
+  --text-lighter: #a0aec0;
+
+  --border-light: #e2e8f0;
+  --border-medium: #cbd5e0;
+
+  --shadow-light: rgba(0, 0, 0, 0.07);
+  --shadow-medium: rgba(0, 0, 0, 0.1);
+  --shadow-heavy: rgba(0, 0, 0, 0.15);
+}
+
+/* 色彩类 */
+.text-primary-pink { color: var(--primary-pink); }
+.text-primary-green { color: var(--primary-green); }
+.text-primary-green-dark { color: var(--primary-green-dark); }
+
+.bg-primary-pink { background-color: var(--primary-pink); }
+.bg-primary-green { background-color: var(--primary-green); }
+.bg-primary-green-light { background-color: var(--primary-green-light); }
+.bg-background-cream { background-color: var(--background-cream); }
+
+.border-primary-pink { border-color: var(--primary-pink); }
+.border-primary-green { border-color: var(--primary-green); }
+.border-primary-green-light { border-color: var(--primary-green-light); }

@@ -1,0 +1,190 @@
+<!-- pages/home/index.wxml -->
+<view class="home-container">
+  <!-- 顶部状态栏 -->
+  <view class="top-header">
+    <view class="header-content">
+      <text class="app-title">
+        <text class="pink-text">Girls</text>Help
+      </text>
+      <view wx:if="{{helpStatus !== 'idle'}}" class="status-badge {{helpStatus}}">
+        <text>{{helpStatus === 'requesting' ? '正在呼叫...' : '互助进行中'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 主内容区 -->
+  <view class="main-content">
+    <!-- 背景装饰 -->
+    <view class="background-decoration">
+      <text class="bg-text">GH</text>
+    </view>
+
+    <!-- 提示文字 -->
+    <view class="welcome-text">
+      <text>{{helpStatus === 'idle' ? "你需要帮助吗？点一下就好。" : "别担心，大家都在。"}}</text>
+    </view>
+
+    <!-- 主要按钮 -->
+    <view class="button-container">
+      <view
+        class="ripple-button {{helpStatus}}"
+        bindtap="handleStartRequest"
+        bindlongpress="onLongPress"
+      >
+        <!-- 涟漪效果 -->
+        <view wx:if="{{helpStatus === 'requesting' || helpStatus === 'active'}}" class="ripples">
+          <view
+            wx:for="{{ripples}}"
+            wx:key="id"
+            class="ripple"
+            style="animation-delay: {{index * 200}}ms"
+          ></view>
+        </view>
+
+        <!-- 旋转边框 -->
+        <view wx:if="{{helpStatus === 'requesting'}}" class="rotating-border"></view>
+
+        <!-- 按钮图标 -->
+        <view class="button-icon">
+          <text wx:if="{{helpStatus === 'idle'}}">💖</text>
+          <text wx:if="{{helpStatus === 'requesting'}}">✨</text>
+          <text wx:if="{{helpStatus === 'active'}}">🕯️</text>
+        </view>
+
+        <!-- 按钮文字 -->
+        <view class="button-text">
+          <text>
+            {{helpStatus === 'idle' ? '需要帮助' :
+              helpStatus === 'requesting' ? '正在呼叫...' : '有人回应了'}}
+          </text>
+        </view>
+
+        <!-- 白色边框 -->
+        <view class="button-border"></view>
+      </view>
+
+      <!-- 树洞入口按钮 -->
+      <view class="tree-hole-button" bindtap="handleEmotionalClick">
+        <text class="tree-hole-icon">🐦</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 请求模态框 -->
+  <view wx:if="{{showRequestModal}}" class="modal-overlay" bindtap="closeRequestModal">
+    <view class="request-modal" bindtap="">
+      <!-- 地图预览头部 -->
+      <view class="modal-header">
+        <view class="map-preview">
+          <view class="map-grid"></view>
+          <view class="location-dot">
+            <text class="location-text">定位中...</text>
+          </view>
+          <view class="close-button" bindtap="closeRequestModal">
+            <text>✕</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 模态框内容 -->
+      <view class="modal-content">
+        <view class="modal-title">
+          <text>你需要什么帮助？</text>
+        </view>
+
+        <!-- 帮助类型选择 -->
+        <view class="help-types">
+          <view
+            wx:for="{{helpTypes}}"
+            wx:key="id"
+            class="help-type {{selectedType === item.id ? 'selected' : ''}}"
+            bindtap="selectHelpType"
+            data-type="{{item.id}}"
+          >
+            <text class="type-icon">{{item.icon}}</text>
+            <text class="type-label">{{item.label}}</text>
+          </view>
+        </view>
+
+        <!-- 补充说明 -->
+        <view class="note-section">
+          <text class="note-label">补充说明 (选填)</text>
+          <input
+            class="note-input"
+            placeholder="例如：我在商场2楼洗手间门口..."
+            value="{{note}}"
+            bindinput="onNoteInput"
+          />
+        </view>
+
+        <!-- 隐私提示 -->
+        <view class="privacy-notice">
+          <text class="notice-icon">ℹ️</text>
+          <text class="notice-text">仅用于向附近女性发送请求，不会公开您的具体身份信息。</text>
+        </view>
+
+        <!-- 提交按钮 -->
+        <button
+          class="submit-button"
+          disabled="{{!selectedType}}"
+          bindtap="handleSubmit"
+        >
+          发出请求
+        </button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 树洞模态框 -->
+  <view wx:if="{{showTreeHole}}" class="tree-hole-modal">
+    <view class="tree-hole-overlay" bindtap="closeTreeHole">
+      <view class="tree-hole-content" bindtap="">
+        <view class="tree-hole-header">
+          <view class="close-tree-hole" bindtap="closeTreeHole">
+            <text>✕</text>
+          </view>
+        </view>
+
+        <view class="tree-hole-body">
+          <view wx:if="{{treeHoleStep === 'input'}}" class="input-step">
+            <text class="tree-hole-title">此刻，你想说什么？</text>
+            <textarea
+              class="tree-hole-input"
+              placeholder="最近做实验一直失败，很沮丧..."
+              value="{{treeHoleInput}}"
+              bindinput="onTreeHoleInput"
+            ></textarea>
+            <button
+              class="send-button"
+              disabled="{{!treeHoleInput.trim()}}"
+              bindtap="sendTreeHole"
+            >
+              <text>发送</text>
+            </button>
+            <text class="tree-hole-hint">我们不评判，只倾听。</text>
+          </view>
+
+          <view wx:if="{{treeHoleStep === 'processing'}}" class="processing-step">
+            <view class="processing-icon">🪶</view>
+            <text class="processing-text">正在寻找回应你的意象...</text>
+          </view>
+
+          <view wx:if="{{treeHoleStep === 'result'}}" class="result-step">
+            <view class="result-card">
+              <view class="result-image">
+                <text wx:if="{{resultImage === 'bird'}}">🐦</text>
+                <text wx:if="{{resultImage === 'flower'}}">🌸</text>
+                <text wx:if="{{resultImage === 'rain'}}">🌧️</text>
+              </view>
+              <text class="result-role">{{resultRole}}</text>
+              <text class="result-text">{{resultText}}</text>
+              <view class="save-button">
+                <text>保存这张卡片</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

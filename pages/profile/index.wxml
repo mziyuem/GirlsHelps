@@ -1,0 +1,85 @@
+<!-- pages/profile/index.wxml -->
+<view class="profile-container">
+  <!-- 用户信息头部 -->
+  <view class="profile-header">
+    <view class="user-avatar">
+      <text class="avatar-emoji">{{user.avatar}}</text>
+    </view>
+    <view class="user-info">
+      <text class="user-name">{{user.name}}</text>
+      <text class="join-time">加入互助第 {{user.joinDays}} 天</text>
+    </view>
+  </view>
+
+  <!-- 统计卡片 -->
+  <view class="stats-grid">
+    <view class="stat-card">
+      <view class="stat-icon help-given">
+        <text>💝</text>
+      </view>
+      <text class="stat-number">{{user.helpGiven}}</text>
+      <text class="stat-label">帮助他人</text>
+    </view>
+    <view class="stat-card">
+      <view class="stat-icon help-received">
+        <text>🎁</text>
+      </view>
+      <text class="stat-number">{{user.helpReceived}}</text>
+      <text class="stat-label">获得帮助</text>
+    </view>
+  </view>
+
+  <!-- 提供资源设置 -->
+  <view class="settings-section">
+    <text class="section-title">我的提供</text>
+    <view class="resource-card">
+      <view class="resource-header">
+        <text class="resource-title">常备资源</text>
+        <view class="resource-tags">
+          <text
+            wx:for="{{user.resources}}"
+            wx:key="*"
+            class="resource-tag"
+          >
+            {{item}}
+          </text>
+        </view>
+      </view>
+      <text class="resource-desc">
+        开启后，附近的求助者可以在地图上看到您大概位置有资源可提供。
+      </text>
+      <view class="toggle-row">
+        <text class="toggle-label">展示在地图上</text>
+        <view class="toggle-switch {{user.showOnMap ? 'active' : ''}}" bindtap="toggleMapVisibility">
+          <view class="toggle-knob"></view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 设置菜单 -->
+  <view class="settings-section">
+    <text class="section-title">设置</text>
+    <view class="menu-list">
+      <view class="menu-item" bindtap="goToSettings">
+        <view class="menu-item-content">
+          <text class="menu-icon">⚙️</text>
+          <text class="menu-text">隐私设置</text>
+        </view>
+        <text class="menu-arrow">›</text>
+      </view>
+      <view class="menu-item" bindtap="showAbout">
+        <view class="menu-item-content">
+          <text class="menu-icon">💝</text>
+          <text class="menu-text">关于我们</text>
+        </view>
+        <text class="menu-arrow">›</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部版权 -->
+  <view class="footer">
+    <text class="footer-text">Girls Help Girls · Light App</text>
+  </view>
+</view>

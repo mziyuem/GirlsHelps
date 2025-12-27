@@ -1,0 +1,58 @@
+<!-- pages/map/index.wxml -->
+<view class="map-container">
+  <!-- 背景圆环 -->
+  <view class="background-rings">
+    <view class="ring ring-1"></view>
+    <view class="ring ring-2"></view>
+    <view class="ring ring-3"></view>
+  </view>
+
+  <!-- 用户中心点 -->
+  <view class="user-center">
+    <view class="user-dot">
+      <text class="location-icon">📍</text>
+    </view>
+    <view class="user-label">
+      <text>你在这里 (模糊位置)</text>
+    </view>
+  </view>
+
+  <!-- 地图点 -->
+  <view class="map-points">
+    <view
+      wx:for="{{points}}"
+      wx:key="id"
+      class="map-point {{item.type}}"
+      style="transform: translate({{item.x}}px, {{item.y}}px)"
+      bindtap="selectPoint"
+      data-id="{{item.id}}"
+    >
+      <view class="point-dot"></view>
+    </view>
+  </view>
+
+  <!-- 底部信息面板 -->
+  <view wx:if="{{selectedPoint}}" class="bottom-sheet">
+    <view class="sheet-header">
+      <view class="sheet-info">
+        <text class="sheet-title">
+          {{selectedPoint.type === 'helper' ? '附近的帮助者' : '附近的求助者'}}
+        </text>
+        <text class="sheet-distance">距离约 {{selectedPoint.distance}} 米</text>
+      </view>
+      <view class="close-btn" bindtap="closeBottomSheet">
+        <text>✕</text>
+      </view>
+    </view>
+
+    <view class="sheet-tags">
+      <text class="tag">
+        {{selectedPoint.type === 'helper' ? '可提供: 卫生巾' : '急需: 纸巾'}}
+      </text>
+    </view>
+
+    <button class="contact-btn" bindtap="contactPerson">
+      {{selectedPoint.type === 'helper' ? '联系她' : '我可以提供帮助'}}
+    </button>
+  </view>
+</view>
