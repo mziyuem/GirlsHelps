@@ -8,7 +8,7 @@ Page({
     longitude: 116.397428,
     latitude: 39.90923,
     // 缩放级别 5-18
-    scale: 15,
+    scale: 14,
     // 地图密钥（如需使用自定义样式等功能需要在腾讯地图控制台申请）
     mapKey: '',
     // 地图上下文
@@ -24,7 +24,11 @@ Page({
     // 状态文本
     statusText: '正在定位...',
     // 隐私保护：位置偏移量（米）
-    privacyOffset: 200
+    privacyOffset: 200,
+    // 搜索半径（米）
+    searchRadius: 10000,
+    // 选中的资源
+    selectedResource: null
   },
 
   onLoad: function (options) {
@@ -122,7 +126,7 @@ Page({
    */
   generateMarkers: function () {
     const that = this;
-    const { userLocation } = this.data;
+    const { userLocation, searchRadius } = this.data;
 
     if (!userLocation) {
       // 如果没有用户位置，生成默认标记点
@@ -136,44 +140,45 @@ Page({
       mask: true
     });
 
-    // 调用云函数获取附近用户
-    cloud.getNearbyUsers(userLocation, 2000, 20)
+    // 调用云函数获取附近用户 (10km范围)
+    cloud.getNearbyUsers(userLocation, searchRadius, 50)
       .then(res => {
         console.log('Nearby users:', res);
 
         const markers = [];
 
         // 将服务器返回的用户转换为标记点
+        // 只显示有资源的帮助者
         res.users.forEach((user, index) => {
-          markers.push({
-            id: index + 1,
-            longitude: user.location.longitude,
-            latitude: user.location.latitude,
-            type: user.type,
-            distance: user.distance,
-            provide: user.provide || '',
-            need: user.need || '',
-            userId: user.userId,
-            nickName: user.nickName,
-            width: 32,
-            height: 32,
-            iconPath: user.type === 'helper'
-              ? '/images/marker-helper.png'
-              : '/images/marker-seeker.png',
-            alpha: 0.9,
-            customCallout: {
-              anchorY: 0,
-              anchorX: 0,
-              display: 'BYCLICK',
-              textAlign: 'center',
-              bgColor: user.type === 'helper' ? '#FFA4A4' : '#BADFDB',
-              color: '#333',
-              fontSize: 12,
-              borderRadius: 8,
-              padding: 8,
-              content: user.type === 'helper' ? '🤝' : '🆘'
-            }
-          });
+          // 只显示有资源的用户
+          if (user.resources && user.resources.length > 0) {
+            markers.push({
+              id: index + 1,
+              longitude: user.location.longitude,
+              latitude: user.location.latitude,
+              type: 'helper',
+              distance: user.distance,
+              resources: user.resources || [],
+              userId: user.userId,
+              nickName: user.nickName,
+              width: 32,
+              height: 32,
+              iconPath: '',
+              alpha: 0.9,
+              customCallout: {
+                anchorY: 0,
+                anchorX: 0,
+                display: 'BYCLICK',
+                textAlign: 'center',
+                bgColor: '#FFA4A4',
+                color: '#333',
+                fontSize: 12,
+                borderRadius: 8,
+                padding: 8,
+                content: '🤝'
+              }
+            });
+          }
         });
 
         // 添加用户当前位置标记（中心点）
@@ -184,20 +189,21 @@ Page({
           type: 'user',
           width: 24,
           height: 24,
-          iconPath: '/images/marker-user.png',
+          iconPath: '',
           alpha: 1,
           zIndex: 100
         });
 
         that.setData({ markers });
 
-        if (res.users.length === 0) {
+        const helperCount = markers.length - 1; // 减去用户自己的标记
+        if (helperCount === 0) {
           that.setData({
-            statusText: '附近暂无其他姐妹'
+            statusText: `10km内暂无可提供帮助的姐妹`
           });
         } else {
           that.setData({
-            statusText: `附近找到 ${res.users.length} 位姐妹`
+            statusText: `10km内找到 ${helperCount} 位可提供帮助的姐妹`
           });
         }
 
@@ -243,9 +249,8 @@ Page({
         need: '卫生巾',
         width: 32,
         height: 32,
-        iconPath: type === 'helper'
-          ? '/images/marker-helper.png'
-          : '/images/marker-seeker.png',
+        // 使用微信小程序内置标记图标，通过callout显示差异
+        iconPath: '', // 不使用自定义图标，使用默认标记
         alpha: 0.9,
         customCallout: {
           anchorY: 0,
@@ -270,7 +275,8 @@ Page({
       type: 'user',
       width: 24,
       height: 24,
-      iconPath: '/images/marker-user.png',
+      // 使用微信小程序内置标记图标
+      iconPath: '', // 不使用自定义图标，使用默认标记
       alpha: 1,
       zIndex: 100
     });
@@ -334,7 +340,8 @@ Page({
   closeBottomSheet: function () {
     this.setData({
       showSheet: false,
-      selectedMarker: null
+      selectedMarker: null,
+      selectedResource: null
     });
   },
 
@@ -382,40 +389,70 @@ Page({
   },
 
   /**
-   * 联系按钮点击
+   * 选择资源
+   */
+  selectResource: function(e) {
+    const resource = e.currentTarget.dataset.resource;
+    this.setData({
+      selectedResource: resource
+    });
+  },
+
+  /**
+   * 请求资源按钮点击 - 创建对话并跳转
    */
   contactPerson: function () {
     const that = this;
-    const { selectedMarker } = this.data;
+    const { selectedMarker, selectedResource } = this.data;
 
     if (!selectedMarker) {
       return;
     }
 
-    const contactType = selectedMarker.type === 'helper' ? 'help_request' : 'help_offer';
+    // 不再强制选择资源，可以直接联系
+    // if (!selectedResource) {
+    //   wx.showToast({
+    //     title: '请先选择需要的资源',
+    //     icon: 'none',
+    //     duration: 2000
+    //   });
+    //   return;
+    // }
 
-    // 调用云函数联系用户
-    cloud.contactUser(selectedMarker.userId, contactType)
-      .then(res => {
-        console.log('Contact sent:', res);
+    // 显示加载提示
+    wx.showLoading({
+      title: '创建对话...',
+      mask: true
+    });
 
-        wx.showToast({
-          title: res.message || '已发送通知',
-          icon: 'success',
-          duration: 2000
-        });
+    // 调用云函数创建对话
+    wx.cloud.callFunction({
+      name: 'createConversation',
+      data: {
+        targetUserId: selectedMarker.userId
+      }
+    }).then(res => {
+      wx.hideLoading();
 
-        that.closeBottomSheet();
-      })
-      .catch(err => {
-        console.error('Contact failed:', err);
+      console.log('Conversation created:', res);
 
-        wx.showToast({
-          title: err.error || '联系失败',
-          icon: 'none',
-          duration: 2000
-        });
+      that.closeBottomSheet();
+
+      // 跳转到聊天页面
+      wx.navigateTo({
+        url: `/pages/chat/index?conversationId=${res.result.conversationId}`
       });
+
+    }).catch(err => {
+      wx.hideLoading();
+      console.error('Create conversation failed:', err);
+
+      wx.showToast({
+        title: err.errMsg || '创建对话失败',
+        icon: 'none',
+        duration: 2000
+      });
+    });
   },
 
   /**

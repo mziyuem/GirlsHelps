@@ -19,13 +19,12 @@ exports.main = async (event, context) => {
   });
 
   try {
-    // 更新用户资源
+    // 使用where条件更新，避免文档ID问题
     const result = await db.collection('users').where({
-      _openid: wxContext.OPENID
+      openid: wxContext.OPENID
     }).update({
       data: {
-        resources: resources || [],
-        lastActiveTime: new Date()
+        resources: resources || []
       }
     });
 

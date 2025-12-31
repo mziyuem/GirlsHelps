@@ -20,16 +20,16 @@ exports.main = async (event, context) => {
   });
 
   try {
-    // 获取请求状态
+    // 获取请求状�?
     const result = await db.collection('help_requests').where({
       requestId: requestId,
-      _openid: wxContext.OPENID
+      openid: wxContext.OPENID
     }).get();
 
     if (result.data.length === 0) {
       return {
         success: false,
-        error: '请求不存在'
+        error: '请求不存�?
       };
     }
 
@@ -43,16 +43,19 @@ exports.main = async (event, context) => {
       status: request.status,
       type: request.type,
       note: request.note,
-      matchedHelperId: request.matchedHelperId,
+      matchedUsers: request.matchedUsers || [],
+      activeHelperId: request.activeHelperId,
       createTime: request.createTime,
-      matchTime: request.matchTime
+      matchTime: request.matchTime,
+      expireTime: request.expireTime
     };
 
   } catch (err) {
     console.error('[GetHelpRequestStatus] Error:', err);
     return {
       success: false,
-      error: err.message || '获取状态失败'
+      error: err.message || '获取状态失�?
     };
   }
 };
+

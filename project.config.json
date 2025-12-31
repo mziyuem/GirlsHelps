@@ -12,12 +12,78 @@
       "outputPath": ""
     },
     "useCompilerPlugins": false,
-    "minifyWXML": true
+    "minifyWXML": true,
+    "ignoreUploadUnusedFiles": false
   },
   "compileType": "miniprogram",
   "simulatorPluginLibVersion": {},
   "packOptions": {
-    "ignore": [],
+    "ignore": [
+      {
+        "type": "folder",
+        "value": "cloudfunctions"
+      },
+      {
+        "type": "folder",
+        "value": "miniprogram"
+      },
+      {
+        "type": "folder",
+        "value": "node_modules"
+      },
+      {
+        "type": "file",
+        "value": "*.bak"
+      },
+      {
+        "type": "file",
+        "value": "*.md"
+      },
+      {
+        "type": "file",
+        "value": "*.pdf"
+      },
+      {
+        "type": "file",
+        "value": "check-database.js"
+      },
+      {
+        "type": "file",
+        "value": "clean-database.js"
+      },
+      {
+        "type": "file",
+        "value": "deploy-cloud.bat"
+      },
+      {
+        "type": "file",
+        "value": "deploy-functions.js"
+      },
+      {
+        "type": "file",
+        "value": "fix-database.js"
+      },
+      {
+        "type": "file",
+        "value": "test-cloud.js"
+      },
+      {
+        "type": "file",
+        "value": "test-integration.js"
+      },
+      {
+        "type": "file",
+        "value": "test-login.js"
+      },
+      {
+        "type": "file",
+        "value": "uploadCloudFunction.sh"
+      },
+      {
+        "type": "file",
+        "value": "verify-config.js"
+      }
+    ],
     "include": []
   },
   "appid": "wxeda84f73ed711592",

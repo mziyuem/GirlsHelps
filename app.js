@@ -101,28 +101,30 @@ App({
   checkLoginStatus: function () {
     const token = wx.getStorageSync('token');
     const userInfo = wx.getStorageSync('userInfo');
+    const autoLogin = wx.getStorageSync('autoLogin');
 
-    this.globalData.isLoggedIn = !!(token && userInfo);
+    if (token && userInfo && autoLogin === true) {
+      console.log('User logged in with auto login enabled');
 
-    if (!this.globalData.isLoggedIn) {
-      console.log('User not logged in, redirecting to login page');
+      // 已登录且启用自动登录，恢复用户信息
+      this.globalData.userInfo = userInfo;
+      this.globalData.token = token;
+      this.globalData.isLoggedIn = true;
 
-      // 未登录，跳转到登录页
+      // 检查位置权限
+      this.checkLocationPermission();
+
+      // 不跳转，由页面自己处理路由
+    } else {
+      console.log('User not logged in or auto login disabled, redirecting to login page');
+
+      // 未登录或未启用自动登录，跳转到登录页
       wx.reLaunch({
         url: '/pages/Login/index',
         fail: function (err) {
           console.error('Redirect to login page failed:', err);
         }
       });
-    } else {
-      console.log('User already logged in');
-
-      // 已登录，恢复用户信息
-      this.globalData.userInfo = userInfo;
-      this.globalData.token = token;
-
-      // 检查位置权限
-      this.checkLocationPermission();
     }
   },
 

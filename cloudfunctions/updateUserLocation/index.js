@@ -35,14 +35,14 @@ exports.main = async (event, context) => {
         longitude: Number(location.longitude),
         accuracy: Number(location.accuracy) || 0,
         updateTime: db.serverDate()
-      },
-      lastActiveTime: db.serverDate()
+      }
     };
 
-    // ========== 修改2：兜底创建文档时也加 merge: true（避免覆盖旧字段） ==========
-    const result = await db.collection('users').doc(wxContext.OPENID).set({
-      data: locationData,
-      merge: true
+    // ========== 修改2：使用where条件更新，避免文档ID问题 ==========
+    const result = await db.collection('users').where({
+      openid: wxContext.OPENID
+    }).update({
+      data: locationData
     });
 
     console.log('[UpdateUserLocation] Updated, stats:', result.stats);

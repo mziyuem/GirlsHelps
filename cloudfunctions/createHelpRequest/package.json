@@ -1,0 +1,9 @@
+﻿{
+  "name": "girls-help-createHelpRequest",
+  "version": "1.0.0",
+  "description": "Girls Help createHelpRequest cloud function",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest"
+  }
+}

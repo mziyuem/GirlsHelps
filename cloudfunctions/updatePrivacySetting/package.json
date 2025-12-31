@@ -1,0 +1,9 @@
+﻿{
+  "name": "girls-help-updatePrivacySetting",
+  "version": "1.0.0",
+  "description": "Girls Help updatePrivacySetting cloud function",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest"
+  }
+}

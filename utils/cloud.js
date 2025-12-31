@@ -109,6 +109,13 @@ function showSuccess(title = '操作成功', duration = 2000) {
   });
 }
 
+/**
+ * 获取默认头像URL
+ */
+function getDefaultAvatar() {
+  return 'https://mmbiz.qpic.cn/mmbiz_png/9c9Ricia1VibYibiaI4Y4a9Q4I4Y4Y4Y4Y4Y4Y4Y4Y4Y4Y4Y4Y4Y4Y4Y4Y4Y4Y4Y4Y4Y4Y4Y4Y4Y4Y4Y4Y4Y4Y4Y4Y4Y4Y4Y4Y4Y4Y4Y/0?wx_fmt=png';
+}
+
 // ==================== 认证相关 ====================
 
 /**
@@ -131,6 +138,17 @@ function login(code, userInfo) {
 function getUserProfile() {
   return callCloudFunction('getUserProfile', {
     token: getToken()
+  });
+}
+
+/**
+ * 更新用户信息
+ * @param {object} userInfo 用户信息对象
+ */
+function updateUserInfo(userInfo) {
+  return callCloudFunction('updateUserInfo', {
+    token: getToken(),
+    ...userInfo
   });
 }
 
@@ -244,14 +262,19 @@ function getNearbyUsers(location, radius = 2000, limit = 20) {
  * 联系用户
  * @param {string} targetUserId 目标用户ID
  * @param {string} type 类型
+ * @param {string} resource 资源类型（可选）
  */
-function contactUser(targetUserId, type) {
+function contactUser(targetUserId, type, resource) {
   showLoading('发送中...');
-  return callCloudFunction('contactUser', {
+  const data = {
     token: getToken(),
     targetUserId: targetUserId,
     type: type
-  }).finally(() => hideLoading());
+  };
+  if (resource) {
+    data.resource = resource;
+  }
+  return callCloudFunction('contactUser', data).finally(() => hideLoading());
 }
 
 // ==================== 情绪支持相关 ====================
@@ -268,6 +291,74 @@ function emotionSupport(message) {
   }).finally(() => hideLoading());
 }
 
+// ==================== 会话相关 ====================
+
+/**
+ * 获取会话详情
+ * @param {string} sessionId 会话ID
+ */
+function getSessionDetail(sessionId) {
+  return callCloudFunction('getSessionDetail', {
+    token: getToken(),
+    sessionId: sessionId
+  });
+}
+
+/**
+ * 获取会话消息
+ * @param {string} sessionId 会话ID
+ */
+function getSessionMessages(sessionId) {
+  return callCloudFunction('getSessionMessages', {
+    token: getToken(),
+    sessionId: sessionId
+  });
+}
+
+/**
+ * 发送会话消息
+ * @param {string} sessionId 会话ID
+ * @param {string} content 消息内容
+ * @param {string} type 消息类型
+ */
+function sendSessionMessage(sessionId, content, type = 'text') {
+  showLoading('发送中...');
+  return callCloudFunction('sendSessionMessage', {
+    token: getToken(),
+    sessionId: sessionId,
+    content: content,
+    type: type
+  }).finally(() => hideLoading());
+}
+
+/**
+ * 设置见面信息
+ * @param {string} sessionId 会话ID
+ * @param {string} meetingPoint 见面地点
+ * @param {Date} meetingTime 见面时间
+ */
+function setMeetingInfo(sessionId, meetingPoint, meetingTime = null) {
+  showLoading('设置中...');
+  return callCloudFunction('setMeetingInfo', {
+    token: getToken(),
+    sessionId: sessionId,
+    meetingPoint: meetingPoint,
+    meetingTime: meetingTime
+  }).finally(() => hideLoading());
+}
+
+/**
+ * 完成会话
+ * @param {string} sessionId 会话ID
+ */
+function completeSession(sessionId) {
+  showLoading('完成中...');
+  return callCloudFunction('completeSession', {
+    token: getToken(),
+    sessionId: sessionId
+  }).finally(() => hideLoading());
+}
+
 module.exports = {
   // 基础工具
   callCloudFunction,
@@ -278,12 +369,14 @@ module.exports = {
   hideLoading,
   showError,
   showSuccess,
+  getDefaultAvatar,
 
   // 认证相关
   login,
 
   // 用户相关
   getUserProfile,
+  updateUserInfo,
   updateUserResources,
   updatePrivacySetting,
   updateUserLocation,
@@ -301,5 +394,12 @@ module.exports = {
   contactUser,
 
   // 情绪支持
-  emotionSupport
+  emotionSupport,
+
+  // 会话相关
+  getSessionDetail,
+  getSessionMessages,
+  sendSessionMessage,
+  setMeetingInfo,
+  completeSession
 };

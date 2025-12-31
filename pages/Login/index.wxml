@@ -11,43 +11,14 @@
   <view class="login-content">
     <!-- Logo和标题 -->
     <view class="logo-section">
-      <text class="logo-icon"></text>
-      <text class="app-name">GirlsHelp</text>
+      <text class="app-name">LunAId</text>
       <text class="app-slogan">姐妹互助，温暖同行</text>
+      <image class="logo-image" src="/images/logo.png" mode="aspectFit"></image>
     </view>
 
-    <!-- 登录状态 -->
-    <view class="status-section">
-      <view wx:if="{{loading}}" class="loading-wrapper">
-        <view class="loading-spinner"></view>
-        <text class="loading-text">{{loadingText}}</text>
-      </view>
 
-      <view wx:elif="{{error}}" class="error-wrapper">
-        <text class="error-icon"></text>
-        <text class="error-text">{{error}}</text>
-      </view>
-
-      <view wx:else class="success-wrapper">
-        <text class="success-icon">✓</text>
-        <text class="success-text">登录成功</text>
-      </view>
-    </view>
-
-    <!-- 权限说明 -->
-    <view wx:if="{{!loading && !error}}" class="permission-info">
-      <view class="permission-item">
-        <text class="permission-icon"></text>
-        <text class="permission-text">位置权限 - 用于显示附近的姐妹</text>
-      </view>
-      <view class="permission-item">
-        <text class="permission-icon"></text>
-        <text class="permission-text">隐私保护 - 位置信息已模糊处理</text>
-      </view>
-    </view>
-
-    <!-- 登录按钮 -->
-    <view class="action-section">
+        <!-- 登录按钮 -->
+        <view class="action-section">
       <button 
         wx:if="{{!isLoggedIn}}" 
         class="wechat-login-btn" 
@@ -67,12 +38,23 @@
       </button>
     </view>
 
+    <!-- 权限说明 -->
+    <view wx:if="{{!loading && !error}}" class="permission-info">
+      <view class="permission-item">
+        <text class="permission-icon"></text>
+        <text class="permission-text">位置权限 - 用于显示附近的姐妹</text>
+      </view>
+      <view class="permission-item">
+        <text class="permission-icon"></text>
+        <text class="permission-text">隐私保护 - 位置信息已模糊处理</text>
+      </view>
+    </view>
+
     <!-- 用户协议 -->
     <view class="agreement-section">
       <text class="agreement-text">
         登录即表示同意
-        <text class="link" bindtap="showAgreement">《用户协议》</text>
-        和
+        <text class="link" bindtap="showAgreement">《用户协议》        和</text>
         <text class="link" bindtap="showPrivacy">《隐私政策》</text>
       </text>
     </view>

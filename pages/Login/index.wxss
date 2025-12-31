@@ -71,23 +71,26 @@
   margin-bottom: 60px;
 }
 
-.logo-icon {
-  font-size: 80px;
-  margin-bottom: 16px;
-}
-
 .app-name {
   font-size: 32px;
   font-weight: bold;
   color: var(--text-dark);
   margin-bottom: 8px;
-  margin-right:80px;
+  margin-right:60px;
 }
 
 .app-slogan {
   font-size: 14px;
   color: var(--text-gray);
-  margin-right:80px;
+  margin-bottom: 24px;
+  margin-right:60px;
+}
+
+.logo-image {
+  width: 200px;
+  height: 200px;
+  object-fit: contain;
+  margin-right:60px;
 }
 
 /* 状态区域 */
@@ -158,10 +161,10 @@
 /* 权限说明 */
 .permission-info {
   width: 100%;
-  background-color: rgba(255, 255, 255, 0.6);
   border-radius: 16px;
   padding: 20px;
   margin-bottom: 32px;
+  margin-left:140px;
   backdrop-filter: blur(10px);
 }
 
@@ -190,6 +193,7 @@
 .action-section {
   width: 100%;
   margin-bottom: 24px;
+  margin-right:60px;
 }
 
 .login-btn,

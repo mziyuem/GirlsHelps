@@ -1,0 +1,164 @@
+<!--pages/chat/index.wxml-->
+<view class="chat-container">
+  <!-- 聊天头部 -->
+  <view class="chat-header">
+    <view class="header-left" bindtap="goBack">
+      <image class="back-icon" src="/images/icon1.png" mode="aspectFit"></image>
+    </view>
+    <view class="header-center">
+      <text class="header-title">{{otherUserInfo.nickname || '匿名用户'}}</text>
+    </view>
+    <view class="header-right">
+      <!-- 完成对话按钮：只对请求者显示，且在active状态时 -->
+      <view wx:if="{{showCompleteButton}}" class="complete-button" bindtap="completeHelpRequest">
+        <text class="complete-icon">✓</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 蜡烛靠近功能：只对请求者显示，当有匹配者时 -->
+  <view wx:if="{{showCandle}}" class="candle-banner" bindtap="showHelpersList">
+    <view class="candle-icon-wrapper">
+      <text class="candle-icon">🕯️</text>
+    </view>
+    <text class="candle-text">点击查看可提供帮助者</text>
+  </view>
+
+  <!-- 聊天消息列表 -->
+  <scroll-view class="chat-messages" scroll-y scroll-into-view="{{lastMessageId}}" scroll-with-animation>
+    <!-- 消息列表 -->
+    <view wx:for="{{messages}}" wx:key="messageId" id="{{item.messageId}}" class="message-item">
+
+      <!-- 对方的消息：从左到右 [头像] [消息]，靠左对齐 -->
+      <view wx:if="{{item.senderId !== currentUserId}}" class="message-row message-row-left">
+        <image class="message-avatar" src="{{otherUserInfo.avatarUrl || defaultAvatar}}" mode="aspectFill"></image>
+        <view class="message-content">
+          <text class="message-bubble message-bubble-left">{{item.content}}</text>
+        </view>
+      </view>
+
+      <!-- 自己的消息：从左到右 [头像] [消息]，但靠右对齐 -->
+      <view wx:if="{{item.senderId === currentUserId}}" class="message-row message-row-right">
+        <view class="message-content">
+          <text class="message-bubble message-bubble-right">{{item.content}}</text>
+        </view>
+        <image class="message-avatar" src="{{currentUserInfo.avatarUrl || defaultAvatar}}" mode="aspectFill"></image>
+      </view>
+
+    </view>
+
+    <!-- 打字中提示 -->
+    <view wx:if="{{isTyping}}" class="message-item">
+      <view class="message-row message-row-left">
+        <image class="message-avatar" src="{{otherUserInfo.avatarUrl || defaultAvatar}}" mode="aspectFill"></image>
+        <view class="message-content">
+          <view class="typing-indicator">
+            <view class="typing-dot"></view>
+            <view class="typing-dot"></view>
+            <view class="typing-dot"></view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 输入区域 -->
+  <view class="chat-input-area">
+    <textarea
+      class="chat-input"
+      placeholder="输入消息..."
+      value="{{inputText}}"
+      bindinput="onInput"
+      bindconfirm="sendMessage"
+      disabled="{{isTyping}}"
+      show-confirm-bar="{{false}}"
+      auto-height
+      maxlength="500"
+      adjust-position="{{true}}"
+    ></textarea>
+    <view
+      class="send-button {{inputText.trim() ? 'active' : ''}}"
+      bindtap="sendMessage"
+    >
+      <text>发送</text>
+    </view>
+  </view>
+</view>
+
+<!-- 帮助者列表弹窗 -->
+<view wx:if="{{showHelpersModal}}" class="modal-overlay" catchtap="closeHelpersModal">
+  <view class="helpers-modal" catchtap="stopPropagation">
+    <view class="modal-header">
+      <text class="modal-title">可提供帮助者</text>
+      <view class="modal-close" catchtap="closeHelpersModal">
+        <text>✕</text>
+      </view>
+    </view>
+    <view class="helpers-list">
+      <view
+        wx:for="{{helpersList}}"
+        wx:key="openid"
+        class="helper-item"
+        bindtap="selectHelper"
+        data-id="{{item.openid}}"
+      >
+        <view class="helper-avatar">
+          <image wx:if="{{item.avatarUrl}}" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+          <view wx:else class="default-avatar-small">{{item.nickname ? item.nickname.substr(0,1) : 'U'}}</view>
+        </view>
+        <view class="helper-info">
+          <text class="helper-name">{{item.nickname || '匿名用户'}}</text>
+          <text class="helper-distance">{{item.distance}}km以内</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- 完成互助弹窗 -->
+<view wx:if="{{showCompleteModal}}" class="modal-overlay" catchtap="closeCompleteModal">
+  <view class="complete-modal" catchtap="stopPropagation">
+    <view class="modal-header">
+      <text class="modal-title">完成互助</text>
+      <view class="modal-close" catchtap="closeCompleteModal">
+        <text>✕</text>
+      </view>
+    </view>
+    <view class="complete-content">
+      <view class="complete-tip">
+        <text class="tip-icon">✓</text>
+        <text>双方已协商好，准备完成互助</text>
+      </view>
+      <view class="form-group">
+        <text class="form-label">协商地点</text>
+        <input
+          class="form-input"
+          placeholder="例如：1号门外卖奶茶店"
+          value="{{meetingLocation}}"
+          bindinput="onLocationInput"
+          maxlength="100"
+        />
+      </view>
+      <view class="form-group">
+        <text class="form-label">备注（可选）</text>
+        <textarea
+          class="form-textarea"
+          placeholder="可以记录一下互助的细节..."
+          value="{{meetingNotes}}"
+          bindinput="onNotesInput"
+          maxlength="200"
+          show-confirm-bar="{{false}}"
+          auto-height
+        ></textarea>
+      </view>
+      <view class="complete-actions">
+        <view class="action-button cancel-button" catchtap="closeCompleteModal">
+          <text>取消</text>
+        </view>
+        <view class="action-button confirm-button" catchtap="confirmComplete">
+          <text>确认完成</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

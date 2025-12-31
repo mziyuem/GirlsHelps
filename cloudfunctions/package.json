@@ -1,0 +1,15 @@
+{
+  "name": "girls-help-cloudfunctions",
+  "version": "1.0.0",
+  "description": "Girls Help 小程序云函数",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["girls-help", "wechat", "miniprogram", "cloudfunctions"],
+  "author": "Girls Help Team",
+  "license": "MIT",
+  "dependencies": {
+    "wx-server-sdk": "latest"
+  }
+}

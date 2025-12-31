@@ -1,5 +1,5 @@
 // cloudfunctions/contactUser/index.js
-// 联系用户云函数
+// Contact user and create help session cloud function
 
 const cloud = require('wx-server-sdk');
 
@@ -10,38 +10,40 @@ cloud.init({
 const db = cloud.database();
 
 /**
- * 生成联系记录ID
+ * Generate session ID
  */
-function generateContactId() {
-  return 'contact_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+function generateSessionId() {
+  return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 }
 
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
-  const { token, targetUserId, type } = event;
+  const { token, targetUserId, type, resource, requestId } = event;
 
   console.log('[ContactUser] Request:', {
     openid: wxContext.OPENID,
     targetUserId: targetUserId,
-    type: type
+    type: type,
+    resource: resource,
+    requestId: requestId
   });
 
   try {
-    // 获取当前用户信息
+    // Get current user info
     const currentUserResult = await db.collection('users').where({
-      _openid: wxContext.OPENID
+      openid: wxContext.OPENID
     }).get();
 
     if (currentUserResult.data.length === 0) {
       return {
         success: false,
-        error: '用户不存在'
+        error: 'User not found'
       };
     }
 
     const currentUser = currentUserResult.data[0];
 
-    // 获取目标用户信息
+    // Get target user info
     const targetUserResult = await db.collection('users').where({
       userId: targetUserId
     }).get();
@@ -49,49 +51,133 @@ exports.main = async (event, context) => {
     if (targetUserResult.data.length === 0) {
       return {
         success: false,
-        error: '目标用户不存在'
+        error: 'Target user not found'
       };
     }
 
     const targetUser = targetUserResult.data[0];
 
-    // 创建联系记录
-    const contactId = generateContactId();
+    // Handle different contact types
+    if (type === 'resource_request') {
+      // Resource request: create a help request first, then create session
+      const helpRequestId = 'req_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      const now = new Date();
+
+      // Create help request
+      const requestData = {
+        openid: wxContext.OPENID,
+        userId: currentUser.userId,
+        requestId: helpRequestId,
+        type: 'other',
+        note: `Requesting resource: ${resource}`,
+        status: 'matched',
+        location: currentUser.currentLocation || {
+          latitude: 0,
+          longitude: 0,
+          accuracy: 0
+        },
+        matchedUsers: [targetUser.userId],
+        activeHelperId: targetUser.userId,
+        createTime: now,
+        matchTime: now,
+        completeTime: null,
+        expireTime: new Date(now.getTime() + 30 * 60 * 1000),
+        cancelTime: null
+      };
+
+      await db.collection('help_requests').add({
+        data: requestData
+      });
+
+      // Create session
+      const sessionId = generateSessionId();
+      const sessionData = {
+        sessionId: sessionId,
+        requestId: helpRequestId,
+        seekerId: currentUser.userId,
+        helperId: targetUser.userId,
+        status: 'active',
+        resource: resource,
+        meetingPoint: null,
+        meetingTime: null,
+        messages: [],
+        createTime: now,
+        completeTime: null
+      };
+
+      await db.collection('help_sessions').add({
+        data: sessionData
+      });
+
+      console.log('[ContactUser] Resource request session created:', sessionId);
+
+      return {
+        success: true,
+        sessionId: sessionId,
+        requestId: helpRequestId,
+        message: 'Resource request sent'
+      };
+    }
+
+    // Original logic for help_request type
+    let requestInfo = null;
+    if (requestId) {
+      const requestResult = await db.collection('help_requests').where({
+        requestId: requestId
+      }).get();
+
+      if (requestResult.data.length > 0) {
+        requestInfo = requestResult.data[0];
+      }
+    }
+
+    // Create help session
+    const sessionId = generateSessionId();
     const now = new Date();
 
-    const contactData = {
-      _openid: wxContext.OPENID,
-      contactId: contactId,
-      fromUserId: currentUser.userId,
-      fromNickName: currentUser.nickName,
-      toOpenid: targetUser._openid,
-      toUserId: targetUser.userId,
-      type: type, // 'help_request' | 'help_offer'
-      status: 'pending',
-      message: type === 'help_request' ? '需要您的帮助' : '我可以帮助您',
+    const sessionData = {
+      sessionId: sessionId,
+      requestId: requestId || null,
+      seekerId: currentUser.userId,
+      helperId: targetUser.userId,
+      status: 'active',
+      meetingPoint: null,
+      meetingTime: null,
+      messages: [],
       createTime: now,
-      responseTime: null
+      completeTime: null
     };
 
-    await db.collection('contact_records').add({
-      data: contactData
+    const sessionResult = await db.collection('help_sessions').add({
+      data: sessionData
     });
 
-    // TODO: 可以在这里添加订阅消息推送通知目标用户
+    // Update associated help request status
+    if (requestId && requestInfo) {
+      await db.collection('help_requests').where({
+        requestId: requestId
+      }).update({
+        data: {
+          status: 'active',
+          activeHelperId: targetUser.userId,
+          matchedUsers: [targetUser.userId]
+        }
+      });
+    }
 
-    console.log('[ContactUser] Contact created:', contactId);
+    console.log('[ContactUser] Session created:', sessionId);
 
     return {
       success: true,
-      contactId: contactId,
-      message: '已发送通知'
+      sessionId: sessionId,
+      message: 'Session created successfully'
     };
 
   } catch (err) {
     console.error('[ContactUser] Error:', err);
     return {
       success: false,
-      error: err.message || '联系失败'
+      error: err.message || 'Failed to create session'
     };
   }
 };

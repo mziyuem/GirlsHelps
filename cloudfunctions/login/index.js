@@ -44,72 +44,94 @@ exports.main = async (event, context) => {
 
   console.log('[Login] Request:', {
     openid: wxContext.OPENID,
-    userInfo: userInfo
+    userInfo: userInfo,
+    userInfoKeys: userInfo ? Object.keys(userInfo) : []
   });
 
   try {
-    // ========== 修改1：查询字段从 _openid 改为 openid（匹配索引） ==========
-    // 检查用户是否存在（用openid查询，而非_openid）
-    const userResult = await db.collection('users').where({
-      openid: wxContext.OPENID // 关键：和数据库索引字段一致
+    // 检查openid是否存在
+    if (!wxContext.OPENID) {
+      console.error('[Login] No OPENID in context:', wxContext);
+      return {
+        success: false,
+        error: '无法获取用户身份信息'
+      };
+    }
+
+    console.log('[Login] Login attempt with openid:', wxContext.OPENID);
+
+    // 使用where查询更安全，避免直接使用doc().get()可能出现的异常
+    const userQuery = await db.collection('users').where({
+      openid: wxContext.OPENID
     }).get();
+
+    console.log('[Login] User query result:', {
+      found: userQuery.data.length > 0,
+      openid: wxContext.OPENID,
+      dataLength: userQuery.data.length
+    });
 
     let user;
     let isNewUser = false;
 
-    if (userResult.data.length === 0) {
+    if (userQuery.data.length === 0) {
       // 新用户，创建记录
       isNewUser = true;
       const now = db.serverDate(); // 修改2：改用云端时间，避免本地时间偏差
 
       user = {
-        // ========== 修改3：字段名从 _openid 改为 openid（核心！） ==========
-        openid: wxContext.OPENID, // 匹配数据库唯一索引字段，杜绝null
+        openid: wxContext.OPENID, // 使用 openid 字段匹配数据库索引
         userId: generateUserId(),
         nickName: userInfo.nickName || '姐妹',
-        avatarUrl: userInfo.avatarUrl || '',
-        isAnonymous: userInfo.isAnonymous || false,
-        city: userInfo.city || '',
         resources: [],
         showOnMap: true,
         stats: {
           helpGiven: 0,
           helpReceived: 0
         },
-        currentLocation: {},
+        currentLocation: {
+          latitude: null,
+          longitude: null,
+          accuracy: 0,
+          updateTime: null
+        },
         privacyOffset: 200,
-        joinTime: now,
-        lastActiveTime: now,
-        createTime: now
+        joinTime: now
       };
 
-      // ========== 修改4：用 doc(openid).set 替代 add（杜绝重复+保证openid非空） ==========
-      // 用openid作为文档ID，强制唯一，避免add生成随机ID导致的问题
-      const addResult = await db.collection('users').doc(wxContext.OPENID).set({
-        data: user,
-        merge: false // 新用户直接创建，不合并（merge仅老用户需要）
+      // 使用 add() 创建新用户，让云开发自动处理文档ID
+      // 这样可以确保 _openid 字段被正确设置
+      const addResult = await db.collection('users').add({
+        data: user
       });
 
-      user._id = wxContext.OPENID; // 文档ID就是openid，无需从addResult取
-      console.log('[Login] New user created:', user.userId);
+      user._id = addResult._id;
+      console.log('[Login] New user created:', user.userId, 'document id:', user._id);
 
     } else {
       // 老用户，更新最后活跃时间
-      user = userResult.data[0];
-      const now = db.serverDate(); // 修改2：改用云端时间
+      user = userQuery.data[0];
 
-      // ========== 修改5：更新时用文档ID（user._id），保证精准 ==========
-      await db.collection('users').doc(user._id).update({
-        data: {
-          lastActiveTime: now,
-          // 仅更新有变化的用户信息，避免覆盖
-          ...(userInfo?.nickName && userInfo.nickName !== user.nickName ? { nickName: userInfo.nickName } : {}),
-          ...(userInfo?.avatarUrl && userInfo.avatarUrl !== user.avatarUrl ? { avatarUrl: userInfo.avatarUrl } : {})
-        }
-      });
+      // 构建更新数据对象
+      const updateData = {};
 
-      user.lastActiveTime = now;
-      console.log('[Login] Existing user:', user.userId);
+      // 仅更新有变化的用户信息，避免覆盖
+      if (userInfo?.nickName && userInfo.nickName !== user.nickName) {
+        updateData.nickName = userInfo.nickName;
+      }
+
+      // 只有当有数据需要更新时才执行更新操作
+      if (Object.keys(updateData).length > 0) {
+        await db.collection('users').where({
+          openid: wxContext.OPENID
+        }).update({
+          data: updateData
+        });
+
+        console.log('[Login] Existing user updated:', user.userId, 'nickName:', userInfo.nickName);
+      } else {
+        console.log('[Login] Existing user, no update needed:', user.userId, 'nickName:', user.nickName);
+      }
     }
 
     // 生成token
@@ -124,9 +146,6 @@ exports.main = async (event, context) => {
       userInfo: {
         userId: user.userId,
         nickName: user.nickName,
-        avatarUrl: user.avatarUrl,
-        isAnonymous: user.isAnonymous,
-        joinDays: joinDays,
         resources: user.resources || [],
         showOnMap: user.showOnMap,
         stats: user.stats || { helpGiven: 0, helpReceived: 0 }

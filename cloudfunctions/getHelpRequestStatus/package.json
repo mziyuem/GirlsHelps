@@ -1,0 +1,9 @@
+﻿{
+  "name": "girls-help-getHelpRequestStatus",
+  "version": "1.0.0",
+  "description": "Girls Help getHelpRequestStatus cloud function",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest"
+  }
+}

@@ -1,0 +1,44 @@
+<!--pages/messages/index.wxml-->
+<view class="messages-container">
+  <!-- 页面标题 -->
+  <view class="page-header">
+    <text class="page-title">消息</text>
+  </view>
+
+  <!-- 消息列表 -->
+  <view class="messages-list">
+    <view
+      wx:for="{{conversations}}"
+      wx:key="conversationId"
+      class="conversation-item"
+      bindtap="openConversation"
+      data-id="{{item.conversationId}}"
+    >
+      <!-- 用户头像 -->
+      <view class="user-avatar">
+        <image wx:if="{{item.otherUserInfo.avatarUrl}}" src="{{item.otherUserInfo.avatarUrl}}" mode="aspectFill"></image>
+        <view wx:else class="default-avatar">{{item.otherUserInfo.nickname ? item.otherUserInfo.nickname.substr(0,1) : 'U'}}</view>
+      </view>
+
+      <!-- 对话信息 -->
+      <view class="conversation-info">
+        <view class="conversation-top">
+          <text class="user-name">{{item.otherUserInfo.nickname || '匿名用户'}}</text>
+          <text class="last-time">{{item.lastMessageTime}}</text>
+        </view>
+        <view class="conversation-bottom">
+          <text class="last-message">{{item.lastMessage || '暂无消息'}}</text>
+          <view wx:if="{{item.unreadCount > 0}}" class="unread-badge">
+            <text>{{item.unreadCount > 99 ? '99+' : item.unreadCount}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view wx:if="{{conversations.length === 0}}" class="empty-state">
+      <text class="empty-icon">📨</text>
+      <text class="empty-text">暂无消息</text>
+    </view>
+  </view>
+</view>

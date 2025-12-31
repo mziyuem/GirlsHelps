@@ -121,10 +121,6 @@ page {
   background-color: var(--primary-pink);
 }
 
-.legend-dot.seeker {
-  background-color: var(--primary-green);
-}
-
 .legend-text {
   font-size: 12px;
   color: var(--text-gray);
@@ -200,6 +196,13 @@ page {
   display: block;
   font-size: 14px;
   color: var(--text-light);
+  margin-bottom: 2px;
+}
+
+.sheet-name {
+  display: block;
+  font-size: 14px;
+  color: var(--text-gray);
 }
 
 .close-btn {
@@ -219,21 +222,43 @@ page {
   background-color: var(--background-cream);
 }
 
-.sheet-tags {
+/* 资源列表 */
+.sheet-resources {
   margin-bottom: 20px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
 }
 
-.tag {
-  display: inline-block;
-  padding: 8px 14px;
+.resources-title {
+  display: block;
+  font-size: 14px;
+  color: var(--text-gray);
+  margin-bottom: 12px;
+}
+
+.resources-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.resource-tag {
+  padding: 10px 16px;
   background-color: var(--background-cream);
   color: var(--text-gray);
   font-size: 14px;
-  border-radius: 12px;
-  border: 1px solid var(--primary-green);
+  border-radius: 16px;
+  border: 2px solid var(--border-light);
+  transition: all 0.2s ease;
+}
+
+.resource-tag.selected {
+  background-color: var(--primary-pink);
+  color: white;
+  border-color: var(--primary-pink);
+  font-weight: 600;
+}
+
+.resource-tag:active {
+  transform: scale(0.95);
 }
 
 .sheet-actions {
@@ -257,7 +282,7 @@ page {
 .action-btn.primary {
   flex: 2;
   background-color: var(--primary-green);
-  color: white;
+  color: rgb(0, 0, 0);
 }
 
 .action-btn.primary:active {

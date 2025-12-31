@@ -1,0 +1,9 @@
+﻿{
+  "name": "girls-help-completeHelp",
+  "version": "1.0.0",
+  "description": "Girls Help completeHelp cloud function",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest"
+  }
+}

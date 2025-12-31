@@ -30,38 +30,47 @@ exports.main = async (event, context) => {
   });
 
   try {
-    // 获取用户信息
-    const result = await db.collection('users').where({
-      _openid: wxContext.OPENID
+    // 使用where查询更安全
+    const userQuery = await db.collection('users').where({
+      openid: wxContext.OPENID
     }).get();
 
-    if (result.data.length === 0) {
+    console.log('[GetUserProfile] Query result:', {
+      found: userQuery.data.length > 0,
+      openid: wxContext.OPENID
+    });
+
+    if (userQuery.data.length === 0) {
+      console.error('[GetUserProfile] User not found with openid:', wxContext.OPENID);
       return {
         success: false,
-        error: '用户不存在'
+        error: '用户不存在，openid: ' + wxContext.OPENID
       };
     }
 
-    const user = result.data[0];
+    const user = userQuery.data[0];
     const joinDays = calculateJoinDays(user.joinTime);
 
-    console.log('[GetUserProfile] User found:', user.userId);
+    console.log('[GetUserProfile] User data:', {
+      userId: user.userId,
+      nickName: user.nickName,
+      ip: user.ip,
+      hasNickName: !!user.nickName,
+      hasIp: !!user.ip
+    });
 
     return {
       success: true,
       user: {
         userId: user.userId,
-        nickName: user.nickName,
-        avatarUrl: user.avatarUrl || '',
-        joinDays: joinDays,
-        avatar: user.avatarUrl ? user.avatarUrl.substring(0, 1) : '👩🏻',
+        nickName: user.nickName || '姐妹',
+        ip: user.ip || '',
         resources: user.resources || [],
-        showOnMap: user.showOnMap !== false, // 默认true
+        showOnMap: user.showOnMap !== false,
         stats: user.stats || {
           helpGiven: 0,
           helpReceived: 0
-        },
-        isAnonymous: user.isAnonymous || false
+        }
       }
     };
 

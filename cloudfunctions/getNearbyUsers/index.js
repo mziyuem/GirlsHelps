@@ -58,7 +58,7 @@ function getTypeLabel(type) {
 
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
-  const { token, location, radius = 2000, limit = 20 } = event;
+  const { token, location, radius = 10000, limit = 50 } = event;
 
   console.log('[GetNearbyUsers] Request:', {
     openid: wxContext.OPENID,
@@ -70,7 +70,7 @@ exports.main = async (event, context) => {
   try {
     // 获取所有有位置信息的用户
     const result = await db.collection('users').where({
-      _openid: _.neq(wxContext.OPENID), // 排除自己
+      openid: _.neq(wxContext.OPENID), // 排除自己
       showOnMap: true,
       currentLocation: _.exists(true)
     }).get();
@@ -110,8 +110,7 @@ exports.main = async (event, context) => {
           resources: user.resources || [],
           // 判断用户类型：有资源的是帮助者
           type: (user.resources && user.resources.length > 0) ? 'helper' : 'seeker',
-          provide: user.resources || [],
-          avatarUrl: user.avatarUrl
+          provide: user.resources || []
         });
       }
     }
@@ -135,8 +134,7 @@ exports.main = async (event, context) => {
         distance: user.distance,
         provide: provide,
         need: need,
-        resources: user.resources,
-        avatarUrl: user.avatarUrl
+        resources: user.resources
       };
     });
 

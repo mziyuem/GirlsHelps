@@ -19,13 +19,12 @@ exports.main = async (event, context) => {
   });
 
   try {
-    // 更新隐私设置
+    // 使用where条件更新，避免文档ID问题
     const result = await db.collection('users').where({
-      _openid: wxContext.OPENID
+      openid: wxContext.OPENID
     }).update({
       data: {
-        showOnMap: showOnMap !== false, // 确保是布尔值
-        lastActiveTime: new Date()
+        showOnMap: showOnMap !== false
       }
     });
 

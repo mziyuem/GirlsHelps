@@ -1,5 +1,5 @@
 // cloudfunctions/cancelHelpRequest/index.js
-// 取消求助请求云函数
+// 取消求助请求云函�?
 
 const cloud = require('wx-server-sdk');
 
@@ -23,19 +23,19 @@ exports.main = async (event, context) => {
     // 获取请求
     const result = await db.collection('help_requests').where({
       requestId: requestId,
-      _openid: wxContext.OPENID
+      openid: wxContext.OPENID
     }).get();
 
     if (result.data.length === 0) {
       return {
         success: false,
-        error: '请求不存在'
+        error: '请求不存�?
       };
     }
 
     const request = result.data[0];
 
-    // 检查状态是否可以取消
+    // 检查状态是否可以取�?
     if (request.status === 'completed' || request.status === 'cancelled') {
       return {
         success: false,
@@ -43,12 +43,12 @@ exports.main = async (event, context) => {
       };
     }
 
-    // 如果已经匹配，需要通知帮助者
+    // 如果已经匹配，需要通知帮助�?
     if (request.status === 'matched' || request.status === 'active') {
       // TODO: 可以添加通知帮助者的逻辑
     }
 
-    // 更新状态为已取消
+    // 更新状态为已取�?
     await db.collection('help_requests').doc(request._id).update({
       data: {
         status: 'cancelled',
@@ -60,7 +60,7 @@ exports.main = async (event, context) => {
 
     return {
       success: true,
-      message: '已取消求助请求'
+      message: '已取消求助请�?
     };
 
   } catch (err) {
@@ -71,3 +71,4 @@ exports.main = async (event, context) => {
     };
   }
 };
+

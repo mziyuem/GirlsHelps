@@ -1,0 +1,101 @@
+<view class="session-container">
+  <!-- 状态栏 -->
+  <view class="status-bar">
+    <text class="status-text">{{sessionInfo.statusText}}</text>
+  </view>
+
+  <!-- 消息列表 -->
+  <scroll-view class="messages-container" scroll-y="true" scroll-with-animation="true" scroll-top="{{scrollTop}}">
+    <view wx:if="{{messages.length === 0}}" class="empty-messages">
+      <text class="empty-icon">💬</text>
+      <text class="empty-text">暂无消息，开始对话吧</text>
+    </view>
+
+    <!-- 消息列表 -->
+    <view wx:for="{{messages}}" wx:key="createTime" class="message-item {{item.fromUserId === userInfo.userId ? 'message-own' : 'message-other'}}">
+      <!-- 对方头像和消息 (头像在左边) -->
+      <view wx:if="{{item.fromUserId !== userInfo.userId}}" class="message-wrapper other-message">
+        <view class="avatar-container">
+          <image class="message-avatar" src="{{sessionInfo.otherAvatar || defaultAvatar}}" mode="aspectFill"></image>
+        </view>
+        <view class="message-bubble-container">
+          <view class="message-bubble other-bubble">
+            <text class="message-text">{{item.content}}</text>
+          </view>
+          <text class="message-time">{{formatTime(item.createTime)}}</text>
+        </view>
+      </view>
+
+      <!-- 自己头像和消息 (头像在右边) -->
+      <view wx:if="{{item.fromUserId === userInfo.userId}}" class="message-wrapper own-message">
+        <view class="message-bubble-container">
+          <view class="message-bubble own-bubble">
+            <text class="message-text">{{item.content}}</text>
+          </view>
+          <text class="message-time">{{formatTime(item.createTime)}}</text>
+        </view>
+        <view class="avatar-container">
+          <image class="message-avatar" src="{{defaultAvatar}}" mode="aspectFill"></image>
+        </view>
+      </view>
+    </view>
+
+    <!-- 见面信息 -->
+    <view wx:if="{{sessionInfo.meetingPoint}}" class="meeting-info">
+      <text class="meeting-title">📍 约定见面信息</text>
+      <text class="meeting-detail">地点：{{sessionInfo.meetingPoint}}</text>
+      <text wx:if="{{sessionInfo.meetingTime}}" class="meeting-detail">时间：{{formatTime(sessionInfo.meetingTime)}}</text>
+
+      <view class="meeting-actions">
+        <button class="action-btn primary" bindtap="navigateToMeeting">导航前往</button>
+        <button class="action-btn secondary" bindtap="completeSession">完成互助</button>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 输入框 -->
+  <view wx:if="{{sessionInfo.status === 'active'}}" class="input-container">
+    <textarea
+      class="input-box"
+      placeholder="输入消息..."
+      value="{{inputMessage}}"
+      bindinput="onInputMessage"
+      bindconfirm="sendMessage"
+      auto-focus="true"
+      adjust-position="true"
+      maxlength="500"
+      show-count="false"
+    ></textarea>
+
+    <button
+      class="send-btn {{inputMessage.trim() ? '' : 'disabled'}}"
+      bindtap="sendMessage"
+      disabled="{{!inputMessage.trim()}}"
+    >
+      发送
+    </button>
+  </view>
+
+  <!-- 见面信息输入 -->
+  <view wx:elif="{{sessionInfo.status === 'active' && !sessionInfo.meetingPoint}}" class="input-container">
+    <input
+      class="input-box"
+      placeholder="输入见面地点..."
+      value="{{meetingPointInput}}"
+      bindinput="onInputMeetingPoint"
+    ></input>
+
+    <button
+      class="send-btn {{meetingPointInput.trim() ? '' : 'disabled'}}"
+      bindtap="setMeetingPoint"
+      disabled="{{!meetingPointInput.trim()}}"
+    >
+      约定
+    </button>
+  </view>
+
+  <!-- 已完成状态 -->
+  <view wx:elif="{{sessionInfo.status === 'completed'}}" class="input-container">
+    <text style="flex: 1; text-align: center; color: #999; font-size: 28rpx;">互助已完成，感谢您的使用</text>
+  </view>
+</view>

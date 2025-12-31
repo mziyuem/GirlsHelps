@@ -13,23 +13,29 @@ Page({
     ripples: [],
     // 求助类型配置（结构化）
     helpTypes: [
-      { id: 'pad', label: '卫生巾', icon: '🌸' },
-      { id: 'tissue', label: '纸巾', icon: '🧻' },
-      { id: 'safety', label: '安全陪伴', icon: '🛡️' },
-      { id: 'other', label: '其他急需', icon: '❓' }
+      { id: 'pad', label: '卫生巾' },
+      { id: 'tissue', label: '纸巾' },
+      { id: 'safety', label: '安全陪伴' },
+      { id: 'other', label: '其他急需' }
     ],
     // 求助表单数据
     selectedType: null,
     note: '',
     // 树洞功能状态
-    treeHoleStep: 'input', // input(输入)/processing(处理中)/result(结果)
+    treeHoleStep: 'input', // input(输入)/processing(处理中)/chat(对话中)
     treeHoleInput: '',
+    // 对话历史（最近5轮，最多10条消息）
+    chatHistory: [],
+    isTyping: false,
     resultImage: '',
     resultRole: '',
     resultText: '',
     // 求助请求相关
     currentRequestId: null,
     pollTimer: null,
+    // 消息相关
+    hasUnreadMessage: false,
+    messagePollTimer: null,
     // 常量配置（新增：避免魔法值）
     POLL_INTERVAL: 5000, // 轮询间隔5秒
     TOAST_DURATION: 2000 // 提示框时长
@@ -46,7 +52,8 @@ Page({
    * 页面卸载生命周期（清理定时器）
    */
   onUnload() {
-    this.clearPollTimer(); // 抽离为独立方法，便于复用
+    this.clearPollTimer(); // 清除求助轮询定时器
+    this.stopMessagePolling(); // 清除消息轮询定时器
   },
 
   /**
@@ -62,6 +69,80 @@ Page({
     if (this.data.currentRequestId && this.data.helpStatus === 'requesting') {
       this.pollMatchStatus();
     }
+
+    // 开始轮询未读消息
+    this.startMessagePolling();
+  },
+
+  onHide() {
+    // 停止轮询未读消息
+    this.stopMessagePolling();
+  },
+
+  /**
+   * 跳转到消息列表
+   */
+  goToMessages() {
+    wx.navigateTo({
+      url: '/pages/messages/index'
+    });
+  },
+
+  /**
+   * 检查未读消息（云函数调用）
+   */
+  checkUnreadMessages() {
+    const db = wx.cloud.database();
+    const wxContext = wx.cloud.getWXContext();
+    const currentOpenid = wxContext.OPENID || '';
+
+    if (!currentOpenid) {
+      return;
+    }
+
+    db.collection('conversations').where({
+      participants: currentOpenid
+    }).get().then(res => {
+      let hasUnread = false;
+      res.data.forEach(conv => {
+        if (conv.unreadCount && conv.unreadCount > 0) {
+          hasUnread = true;
+        }
+      });
+      this.setData({ hasUnreadMessage: hasUnread });
+    }).catch(err => {
+      console.error('Check unread messages failed:', err);
+    });
+  },
+
+  /**
+   * 开始轮询未读消息
+   */
+  startMessagePolling() {
+    // 清除旧的定时器
+    if (this.data.messagePollTimer) {
+      clearInterval(this.data.messagePollTimer);
+    }
+
+    // 立即检查一次
+    this.checkUnreadMessages();
+
+    // 每5秒检查一次
+    const timer = setInterval(() => {
+      this.checkUnreadMessages();
+    }, 5000);
+
+    this.setData({ messagePollTimer: timer });
+  },
+
+  /**
+   * 停止轮询未读消息
+   */
+  stopMessagePolling() {
+    if (this.data.messagePollTimer) {
+      clearInterval(this.data.messagePollTimer);
+      this.setData({ messagePollTimer: null });
+    }
   },
 
   /**
@@ -75,11 +156,8 @@ Page({
         this.setData({ showRequestModal: true });
         break;
       case 'requesting':
-        wx.showToast({
-          title: '长按按钮可以取消请求',
-          icon: 'none',
-          duration: this.data.TOAST_DURATION
-        });
+        // 也可以打开弹窗发起新请求（会自动取消旧请求）
+        this.setData({ showRequestModal: true });
         break;
       case 'active':
         this.completeHelp(); // 完成互助
@@ -103,6 +181,59 @@ Page({
    * @param {string} note 补充说明
    */
   submitRequest(type, note) {
+    // 如果已有正在进行的请求，先自动取消
+    if (this.data.currentRequestId && this.data.helpStatus === 'requesting') {
+      this.cancelHelpRequestInternal();
+    }
+
+    // 首先请求订阅消息权限
+    this.requestSubscribeMessage().then(() => {
+      // 订阅成功或用户拒绝后继续请求流程
+      this.proceedWithRequest(type, note);
+    }).catch(() => {
+      // 订阅失败也继续请求流程（不阻止用户发起求助）
+      this.proceedWithRequest(type, note);
+    });
+  },
+
+  /**
+   * 请求订阅消息权限
+   * 模板ID: 7ugkaeDHRleeeT0peCAbcTQv1dSboyU3AWTWaexoSuQ
+   */
+  requestSubscribeMessage() {
+    return new Promise((resolve, reject) => {
+      const templateId = '7ugkaeDHRleeeT0peCAbcTQv1dSboyU3AWTWaexoSuQ';
+
+      wx.requestSubscribeMessage({
+        tmplIds: [templateId],
+        success: (res) => {
+          console.log('[SubscribeMessage] Success:', res);
+          if (res[templateId] === 'accept') {
+            wx.showToast({
+              title: '已开启求助通知',
+              icon: 'success',
+              duration: 1500
+            });
+            resolve();
+          } else {
+            // 用户拒绝了订阅
+            console.log('[SubscribeMessage] User rejected');
+            resolve(); // 仍然继续，不阻止用户
+          }
+        },
+        fail: (err) => {
+          console.error('[SubscribeMessage] Failed:', err);
+          // 用户可能点击了关闭或其他原因
+          resolve(); // 仍然继续，不阻止用户
+        }
+      });
+    });
+  },
+
+  /**
+   * 继续执行请求流程
+   */
+  proceedWithRequest(type, note) {
     // 仅发布请求时关闭弹窗，其余操作不关闭
     this.setData({
       showRequestModal: false,
@@ -127,7 +258,7 @@ Page({
       },
       fail: () => {
         // 位置获取失败：回滚状态，但弹窗不关闭（让用户重新操作）
-        this.setData({ 
+        this.setData({
           helpStatus: 'idle',
           showRequestModal: true // 保持弹窗显示
         });
@@ -312,6 +443,13 @@ Page({
   },
 
   /**
+   * 阻止事件冒泡（用于input等元素）
+   */
+  stopPropagation() {
+    // 空函数，仅用于阻止事件冒泡
+  },
+
+  /**
    * 关闭请求模态框（点击关闭按钮时触发）
    */
   closeRequestModal() {
@@ -335,7 +473,8 @@ Page({
       treeHoleInput: '',
       resultImage: '',
       resultRole: '',
-      resultText: ''
+      resultText: '',
+      lastMessageId: ''
     });
   },
 
@@ -344,7 +483,6 @@ Page({
    * @param {Event} e 点击事件
    */
   selectHelpType(e) {
-    e.stopPropagation(); // 阻止冒泡到 overlay
     const type = e.currentTarget.dataset.type;
     // 仅更新选中状态，绝对不关闭弹窗
     this.setData({ selectedType: type });
@@ -390,15 +528,17 @@ Page({
    * @param {Event} e 输入事件
    */
   onTreeHoleInput(e) {
-    this.setData({ treeHoleInput: e.detail.value?.trim() || '' });
+    this.setData({ treeHoleInput: e.detail.value });
   },
 
   /**
-   * 发送树洞消息（情绪支持）
+   * 发送树洞消息（DeepSeek AI对话）
    */
   sendTreeHole() {
-    const { treeHoleInput } = this.data;
-    if (!treeHoleInput) {
+    const { treeHoleInput, chatHistory, isTyping } = this.data;
+    const message = treeHoleInput.trim();
+
+    if (!message) {
       wx.showToast({
         title: '请输入你想说的话',
         icon: 'none',
@@ -407,30 +547,134 @@ Page({
       return;
     }
 
-    // 切换到处理中状态
-    this.setData({ treeHoleStep: 'processing' });
+    if (isTyping) {
+      return;
+    }
 
-    // 调用情绪支持云函数
-    cloud.emotionSupport(treeHoleInput)
-      .then(res => {
-        console.log('Emotion support result:', res);
-        this.setData({
-          treeHoleStep: 'result',
-          resultImage: res.result?.image || '',
-          resultRole: res.result?.role || '',
-          resultText: res.result?.text || ''
-        });
-      })
-      .catch(err => {
-        console.error('Emotion support failed:', err);
-        // 失败默认回应（兜底）
-        this.setData({
-          treeHoleStep: 'result',
-          resultImage: 'bird',
-          resultRole: '一只路过的小鸟',
-          resultText: '"每一次倾诉，都是一次释放。"\n—— 谢谢你愿意分享。'
-        });
+    // 生成消息ID
+    const messageId = `msg-${Date.now()}`;
+
+    // 添加用户消息到历史
+    const newHistory = [
+      ...chatHistory,
+      { role: 'user', content: message, id: messageId }
+    ];
+
+    // 限制历史记录为10条消息（5轮对话）
+    const limitedHistory = newHistory.slice(-10);
+
+    // 清空输入框，切换到对话状态
+    this.setData({
+      chatHistory: limitedHistory,
+      treeHoleInput: '',
+      treeHoleStep: 'chat',
+      isTyping: true,
+      lastMessageId: messageId
+    });
+
+    // 调用DeepSeek云函数
+    this.callDeepSeek(message, limitedHistory);
+  },
+
+  /**
+   * 调用DeepSeek云函数
+   * @param {string} message 用户消息
+   * @param {Array} history 对话历史
+   */
+  callDeepSeek(message, history) {
+    wx.cloud.callFunction({
+      name: 'deepSeekChat',
+      data: {
+        message: message,
+        history: history
+      }
+    })
+    .then(res => {
+      const reply = res.result.reply || '感谢你的分享。你的感受很重要，我一直在听。';
+
+      // 生成AI消息ID
+      const aiMessageId = `msg-${Date.now()}`;
+
+      // 添加AI回复到历史
+      const newHistory = [
+        ...this.data.chatHistory,
+        { role: 'assistant', content: reply, id: aiMessageId }
+      ];
+
+      this.setData({
+        chatHistory: newHistory,
+        isTyping: false,
+        treeHoleStep: 'chat',
+        lastMessageId: aiMessageId
       });
+    })
+    .catch(err => {
+      console.error('DeepSeek error:', err);
+
+      // 失败兜底回复
+      const fallbackReply = '我听见你了。你的感受很重要，想说的话都可以继续告诉我。';
+
+      const aiMessageId = `msg-${Date.now()}`;
+
+      const newHistory = [
+        ...this.data.chatHistory,
+        { role: 'assistant', content: fallbackReply, id: aiMessageId }
+      ];
+
+      this.setData({
+        chatHistory: newHistory,
+        isTyping: false,
+        lastMessageId: aiMessageId
+      });
+
+      wx.showToast({
+        title: '回复稍慢，但我在听',
+        icon: 'none'
+      });
+    });
+  },
+
+  /**
+   * 重新开始对话
+   */
+  resetChat() {
+    wx.showModal({
+      title: '重新开始',
+      content: '确定要清空对话历史重新开始吗？',
+      success: (res) => {
+        if (res.confirm) {
+          this.setData({
+            chatHistory: [],
+            treeHoleStep: 'input',
+            treeHoleInput: '',
+            isTyping: false,
+            lastMessageId: ''
+          });
+        }
+      }
+    });
+  },
+
+  /**
+   * 内部取消求助请求（静默取消，不显示提示）
+   */
+  cancelHelpRequestInternal() {
+    // 清除定时器
+    this.clearPollTimer();
+
+    // 调用云函数取消请求（有ID时）
+    if (this.data.currentRequestId) {
+      cloud.cancelHelpRequest(this.data.currentRequestId)
+        .then(() => console.log('Help request auto-cancelled before new request'))
+        .catch(err => console.error('Auto-cancel help request failed:', err));
+    }
+
+    // 重置状态（静默，不显示提示）
+    this.setData({
+      helpStatus: 'idle',
+      currentRequestId: null
+    });
+    app.globalData.helpStatus = 'idle';
   },
 
   /**

@@ -1,0 +1,9 @@
+﻿{
+  "name": "girls-help-getUserProfile",
+  "version": "1.0.0",
+  "description": "Girls Help getUserProfile cloud function",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest"
+  }
+}

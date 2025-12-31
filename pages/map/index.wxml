@@ -62,11 +62,7 @@
   <view class="legend">
     <view class="legend-item">
       <view class="legend-dot helper"></view>
-      <text class="legend-text">帮助者</text>
-    </view>
-    <view class="legend-item">
-      <view class="legend-dot seeker"></view>
-      <text class="legend-text">求助者</text>
+      <text class="legend-text">可提供帮助</text>
     </view>
   </view>
 
@@ -74,28 +70,36 @@
   <view wx:if="{{selectedMarker}}" class="bottom-sheet {{showSheet ? 'show' : ''}}">
     <view class="sheet-header">
       <view class="sheet-info">
-        <text class="sheet-type">
-          {{selectedMarker.type === 'helper' ? '🤝 附近的帮助者' : '🆘 附近的求助者'}}
-        </text>
+        <text class="sheet-type">🤝 附近的帮助者</text>
         <text class="sheet-distance">距离约 {{selectedMarker.distance}} 米</text>
+        <text class="sheet-name">{{selectedMarker.nickName}}</text>
       </view>
       <view class="close-btn" bindtap="closeBottomSheet">
         <text>✕</text>
       </view>
     </view>
 
-    <view class="sheet-tags">
-      <text class="tag">
-        {{selectedMarker.type === 'helper' ? selectedMarker.provide : selectedMarker.need}}
-      </text>
+    <view class="sheet-resources">
+      <text class="resources-title">可提供的资源（请选择）：</text>
+      <view class="resources-list">
+        <view
+          wx:for="{{selectedMarker.resources}}"
+          wx:key="index"
+          class="resource-tag {{selectedResource === item ? 'selected' : ''}}"
+          bindtap="selectResource"
+          data-resource="{{item}}"
+        >
+          <text>{{item}}</text>
+        </view>
+      </view>
     </view>
 
     <view class="sheet-actions">
       <button class="action-btn primary" bindtap="contactPerson">
-        {{selectedMarker.type === 'helper' ? '联系她' : '我可以提供帮助'}}
+        请求资源
       </button>
       <button class="action-btn secondary" bindtap="navigateTo">
-        <text class="btn-text">导航</text>
+        导航
       </button>
     </view>
   </view>
